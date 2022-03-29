@@ -12,24 +12,65 @@ namespace fs = std::filesystem;
 #include <sstream>
 #include <iomanip>
 #include <fstream>
+#include <vector>
+#include <array>
 
 using std::cout;
 using std::endl;
 using std::string;
 
-string sha256(const string str)
-{
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256, str.c_str(), str.size());
-    SHA256_Final(hash, &sha256);
-    std::stringstream ss;
-    for(int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+std::string sha256(const std::string filePath) {
+//string sha256(const string str) {
+//    unsigned char hash[SHA256_DIGEST_LENGTH];
+    std::vector<unsigned char> hash(SHA256_DIGEST_LENGTH, 0);
+    SHA256_CTX sha256_context;
+    SHA256_Init(&sha256_context);
+
+    //SHA256_Update(&sha256_context, str.c_str(), str.size());
+
+//    size_t bytes;
+//    unsigned char data[1024];
+//    FILE* file = fopen(filePath.c_str(), "rb");
+//
+//    while( (bytes = fread(data, 1, 1024, file) ) != 0 ){
+//        SHA256_Update(&sha256_context, data, bytes);
+//    }
+
+//    size_t bytes;
+//    //std::array<char, 1024> data;
+//    unsigned char data[1024];
+//
+//    file.read(&data[0], 1024);
+//    bytes = file.gcount();
+
+    std::ifstream fin(filePath, std::ios::binary);
+    std::vector<char> x(1024, 0);
+
+    while (fin.read(x.data(), x.size()))
     {
-        ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+        std::streamsize bytes = fin.gcount();
+
+        SHA256_Update(&sha256_context, x.data(), bytes);
     }
-    return ss.str();
+
+    if (fin.gcount() != 0)
+    {
+        SHA256_Update(&sha256_context, x.data(), fin.gcount());
+    }
+
+    SHA256_Final(hash.data(), &sha256_context);
+
+    std::stringstream result;
+//    for(int chunkNumber = 0; chunkNumber < SHA256_DIGEST_LENGTH; chunkNumber++)
+//    {
+//        result << std::hex << std::setw(2) << std::setfill('0') << (uint32_t)hash[chunkNumber];
+//    }
+
+    for(auto chunk : hash) {
+        result << std::hex << std::setw(2) << std::setfill('0') << (uint32_t)chunk;
+    }
+
+    return result.str();
 }
 
 string convertFileToString(std::string filePath){
@@ -45,19 +86,19 @@ string convertFileToString(std::string filePath){
     return fileStr;
 }
 
-//std::string getFileHash(const char *fileName) {
-void getFileHash(const char *fileName) {
+std::string getFileHash(const std::string fileName) {
+//void getFileHash(const char *fileName) {
 
     unsigned char result[2*SHA_DIGEST_LENGTH];
     unsigned char hash[SHA_DIGEST_LENGTH];
     int i;
-    FILE *f = fopen(fileName,"rb");
+    FILE *f = fopen(fileName.c_str(), "rb");
     SHA_CTX mdContent;
     int bytes;
     unsigned char data[1024];
 
     if(f == NULL){
-        printf("%s couldn't open file\n",fileName);
+        printf("%s couldn't open file\n", fileName.c_str());
         exit(1);
     }
 
@@ -82,6 +123,14 @@ void getFileHash(const char *fileName) {
     printf("hash: %s\n",result);
 
     fclose(f);
+
+    std::stringstream result_str;
+    for(int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    {
+        result_str << std::hex << (uint32_t)hash[i];
+    }
+
+    return result_str.str();
 }
 
 int main() {
@@ -114,10 +163,11 @@ int main() {
             //auto sha256AsString = sha256(absolutePathForFile);
             //std::cout << "hash: " << sha256AsString << '\n';
 
-            getFileHash(absolutePathForFile.c_str());
+            //getFileHash(absolutePathForFile.c_str());
 
             //auto shaAsString = getFileHash(absolutePathForFile.c_str());
-            //std::cout << "hash: " << shaAsString << '\n';
+            auto shaAsString = sha256(absolutePathForFile);
+            std::cout << "hash: " << shaAsString << '\n';
 
             std::cout << "---" << '\n';
         }
@@ -150,7 +200,7 @@ int main() {
     auto filesWithHashes = std::map<std::string, std::string>();
     //auto originalFiles = std::map<Hash, Path>();
 
-    auto duplicateFiles = std::map<std::string, std::string>();
+    auto duplicateFiles = std::multimap<std::string, std::string>();
     //auto duplicateFiles = std::map<Hash, Path>();
 
     return 0;
