@@ -15,10 +15,6 @@ namespace fs = std::filesystem;
 #include <vector>
 #include <array>
 
-using std::cout;
-using std::endl;
-using std::string;
-
 std::string sha256_CPP_style(const std::string filePath) {
     SHA256_CTX sha256_context;
     SHA256_Init(&sha256_context);
@@ -76,8 +72,9 @@ void sha1_C_style(const char* filePath) {
     fclose(file);
 
     //return ??? not local variable 'result' but something dynamically allocated that the caller code will need to deallocate.
-    result = NULL;
-    free(result);
+
+    //result = NULL;
+    //free(result);
 }
 
 int main() {
@@ -94,9 +91,9 @@ int main() {
 
     fs::path aPath {basePath};
 
-    cout << "Parent basePath: " << aPath.parent_path() << endl;
-    cout << "Filename: " << aPath.filename() << endl;
-    cout << "Extension: " << aPath.extension() << endl;
+    std::cout << "Parent basePath: " << aPath.parent_path() << std::endl;
+    std::cout << "Filename: " << aPath.filename() << std::endl;
+    std::cout << "Extension: " << aPath.extension() << std::endl;
 
     for (const auto& entry : fs::directory_iterator(aPath)) {
         const auto filenameStr = entry.path().filename().string();
