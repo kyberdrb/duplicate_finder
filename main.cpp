@@ -19,53 +19,26 @@ using std::cout;
 using std::endl;
 using std::string;
 
-std::string sha256(const std::string filePath) {
-//string sha256(const string str) {
-//    unsigned char hash[SHA256_DIGEST_LENGTH];
-    std::vector<unsigned char> hash(SHA256_DIGEST_LENGTH, 0);
+std::string sha256_CPP_style(const std::string filePath) {
     SHA256_CTX sha256_context;
     SHA256_Init(&sha256_context);
-
-    //SHA256_Update(&sha256_context, str.c_str(), str.size());
-
-//    size_t bytes;
-//    unsigned char data[1024];
-//    FILE* file = fopen(filePath.c_str(), "rb");
-//
-//    while( (bytes = fread(data, 1, 1024, file) ) != 0 ){
-//        SHA256_Update(&sha256_context, data, bytes);
-//    }
-
-//    size_t bytes;
-//    //std::array<char, 1024> data;
-//    unsigned char data[1024];
-//
-//    file.read(&data[0], 1024);
-//    bytes = file.gcount();
 
     std::ifstream fin(filePath, std::ios::binary);
     std::vector<char> x(1024, 0);
 
-    while (fin.read(x.data(), x.size()))
-    {
+    while (fin.read(x.data(), x.size())) {
         std::streamsize bytes = fin.gcount();
-
         SHA256_Update(&sha256_context, x.data(), bytes);
     }
 
-    if (fin.gcount() != 0)
-    {
+    if (fin.gcount() != 0) {
         SHA256_Update(&sha256_context, x.data(), fin.gcount());
     }
 
+    std::vector<unsigned char> hash(SHA256_DIGEST_LENGTH, 0);
     SHA256_Final(hash.data(), &sha256_context);
 
     std::stringstream result;
-//    for(int chunkNumber = 0; chunkNumber < SHA256_DIGEST_LENGTH; chunkNumber++)
-//    {
-//        result << std::hex << std::setw(2) << std::setfill('0') << (uint32_t)hash[chunkNumber];
-//    }
-
     for(auto chunk : hash) {
         result << std::hex << std::setw(2) << std::setfill('0') << (uint32_t)chunk;
     }
@@ -73,64 +46,34 @@ std::string sha256(const std::string filePath) {
     return result.str();
 }
 
-string convertFileToString(std::string filePath){
-    //std::ifstream file(filePath, std::ios::binary);
-    std::ifstream file(filePath);
-    string fileStr;
+void sha1_C_style(const char* filePath) {
+    SHA_CTX SHA1_context;
+    SHA1_Init(&SHA1_context);
 
-    std::istreambuf_iterator<char> inputIt(file), emptyInputIt;
-    std::back_insert_iterator<string> stringInsert(fileStr);
-
-    std::copy(inputIt, emptyInputIt, stringInsert);
-
-    return fileStr;
-}
-
-std::string getFileHash(const std::string fileName) {
-//void getFileHash(const char *fileName) {
-
-    unsigned char result[2*SHA_DIGEST_LENGTH];
-    unsigned char hash[SHA_DIGEST_LENGTH];
-    int i;
-    FILE *f = fopen(fileName.c_str(), "rb");
-    SHA_CTX mdContent;
-    int bytes;
+    uint32_t bytes;
     unsigned char data[1024];
+    FILE* file = fopen(filePath, "rb");
 
-    if(f == NULL){
-        printf("%s couldn't open file\n", fileName.c_str());
-        exit(1);
+    while( (bytes = fread(data, 1, 1024, file) ) != 0 ) {
+        SHA1_Update(&SHA1_context, data, bytes);
     }
 
-    SHA1_Init(&mdContent);
-    while((bytes = fread(data, 1, 1024, f)) != 0){
+    unsigned char hash[SHA_DIGEST_LENGTH];
+    SHA1_Final(hash, &SHA1_context);
 
-        SHA1_Update(&mdContent, data, bytes);
+    char result[2*SHA_DIGEST_LENGTH];
+    //char* result = (char*) calloc(SHA_DIGEST_LENGTH * 2 + 1, sizeof(char));
+    for(int32_t chunkPosition=0; chunkPosition < SHA_DIGEST_LENGTH; ++chunkPosition) {
+        sprintf(&(result[chunkPosition * 2]), "%02x", hash[chunkPosition] );
     }
 
-    SHA1_Final(hash,&mdContent);
+    printf("%s",result);
 
-//    for(i=0;i<SHA_DIGEST_LENGTH;i++){
-//        printf("%02x",hash[i]);
-//    }
-//    printf("\n");
+    fclose(file);
 
-    /** if you want to see the plain text of the hash */
-    for(i=0; i < SHA_DIGEST_LENGTH;i++){
-        sprintf((char *)&(result[i*2]), "%02x",hash[i]);
-    }
-
-    printf("hash: %s\n",result);
-
-    fclose(f);
-
-    std::stringstream result_str;
-    for(int i = 0; i < SHA256_DIGEST_LENGTH; i++)
-    {
-        result_str << std::hex << (uint32_t)hash[i];
-    }
-
-    return result_str.str();
+    //return ??? not local variable 'result' but something dynamically allocated that the caller code will need to deallocate.
+    result = NULL;
+    free(result);
 }
 
 int main() {
@@ -160,14 +103,18 @@ int main() {
 
             // generate hash from a file, which is read as text, regardless whether the file is in a plain-text or binary format
             //auto fileAsString = convertFileToString(absolutePathForFile);
-            //auto sha256AsString = sha256(absolutePathForFile);
+            //auto sha256AsString = sha256_CPP_style(absolutePathForFile);
             //std::cout << "hash: " << sha256AsString << '\n';
 
             //getFileHash(absolutePathForFile.c_str());
 
             //auto shaAsString = getFileHash(absolutePathForFile.c_str());
-            auto shaAsString = sha256(absolutePathForFile);
+            auto shaAsString = sha256_CPP_style(absolutePathForFile);
             std::cout << "hash: " << shaAsString << '\n';
+
+            std::cout << "hash: ";
+            sha1_C_style(absolutePathForFile.c_str());
+            std::cout << '\n';
 
             std::cout << "---" << '\n';
         }
