@@ -48,10 +48,13 @@ std::string sha256_CPP_style(const std::string filePath) {
 
 void sha1_C_style(const char* filePath) {
     SHA_CTX SHA1_context;
+    // TODO rename SHA1_context to sha1_context
+    //SHA_CTX* SHA1_context = (SHA_CTX*) calloc(1, sizeof(SHA_CTX));
     SHA1_Init(&SHA1_context);
 
     uint32_t bytes;
     unsigned char data[1024];
+    //char* data = (unsigned char*) calloc(1024, sizeof(unsigned char));
     FILE* file = fopen(filePath, "rb");
 
     while( (bytes = fread(data, 1, 1024, file) ) != 0 ) {
@@ -59,10 +62,11 @@ void sha1_C_style(const char* filePath) {
     }
 
     unsigned char hash[SHA_DIGEST_LENGTH];
+    //unsigned char* hash = (unsigned char*) calloc(SHA_DIGEST_LENGTH, sizeof(unsigned char));
     SHA1_Final(hash, &SHA1_context);
 
     char result[2*SHA_DIGEST_LENGTH];
-    //char* result = (char*) calloc(SHA_DIGEST_LENGTH * 2 + 1, sizeof(char));
+    //char* result = (char*) calloc(SHA_DIGEST_LENGTH * 2 + 1, sizeof(char));   // + 1 for the null character '\0' for terminating string
     for(int32_t chunkPosition=0; chunkPosition < SHA_DIGEST_LENGTH; ++chunkPosition) {
         sprintf(&(result[chunkPosition * 2]), "%02x", hash[chunkPosition] );
     }

@@ -1,11 +1,11 @@
-std::string sha256(const std::string filePath) {
+std::string sha256_CPP_style(const std::string filePath) {
     SHA256_CTX sha256_context;
     SHA256_Init(&sha256_context);
 
     std::ifstream fin(filePath, std::ios::binary);
     std::vector<char> x(1024, 0);
 
-    while ( fin.read(x.data(), x.size() ) {
+    while (fin.read(x.data(), x.size())) {
         std::streamsize bytes = fin.gcount();
         SHA256_Update(&sha256_context, x.data(), bytes);
     }
