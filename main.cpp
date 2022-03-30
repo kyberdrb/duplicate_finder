@@ -1,6 +1,4 @@
 #include <iostream>
-#include <map>
-#include <string>
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -8,73 +6,114 @@ namespace fs = std::filesystem;
 //#include <experimental/filesystem>
 //namespace fs = std::experimental::filesystem;
 
-#include "openssl/sha.h"
-#include <sstream>
-#include <iomanip>
+#include <string>
 #include <fstream>
+#include "openssl/sha.h"
 #include <vector>
 #include <array>
+#include <sstream>
+#include <cstdint>
+#include <iomanip>
 
+#include <map>
+
+// TODO template this for algorithm type - maybe later, when I will create a library for hashing which will be much simpler to use than the raw Crypto++ or OpenSSL libraries, like this for example: std::string sha256HashOfFile = Hasher::sha256sum(filePath);
 std::string sha256_CPP_style(const std::string filePath) {
     SHA256_CTX sha256_context;
     SHA256_Init(&sha256_context);
 
-    std::ifstream fin(filePath, std::ios::binary);
-    std::vector<char> x(1024, 0);
+    std::ifstream file(filePath, std::ios::binary);
+    const size_t CHUNK_SIZE = 1024;
+    // preferring array instead of vector because the size of the buffer will stay the same throughout the entire usage
+    //std::vector<char> chunkBuffer(CHUNK_SIZE, '\0');
+    std::array<char, CHUNK_SIZE> chunkBuffer{'\0'};
 
-    while (fin.read(x.data(), x.size())) {
-        std::streamsize bytes = fin.gcount();
-        SHA256_Update(&sha256_context, x.data(), bytes);
+    while ( file.read( chunkBuffer.data(), chunkBuffer.size() ) ) {
+        auto bytesRead = file.gcount();
+        SHA256_Update(&sha256_context, chunkBuffer.data(), bytesRead);
     }
 
-    if (fin.gcount() != 0) {
-        SHA256_Update(&sha256_context, x.data(), fin.gcount());
+    // Evaluate the last partial chunk
+    // `fin.read(...)` evaluates to false on the last partial block (or eof). You need to process partial reads outside of the while loop `gcount()!=0` - https://stackoverflow.com/questions/35905295/reading-a-file-in-chunks#comment59488065_35905524
+    if (file.gcount() != 0) {
+        SHA256_Update(&sha256_context, chunkBuffer.data(), file.gcount());
     }
 
-    std::vector<unsigned char> hash(SHA256_DIGEST_LENGTH, 0);
+    // preferring array instead of vector because the size of the buffer will stay the same throughout the entire usage
+    //std::vector<uint8_t> hash(SHA256_DIGEST_LENGTH, '\0');
+    std::array<uint8_t, SHA256_DIGEST_LENGTH> hash{'\0'};
     SHA256_Final(hash.data(), &sha256_context);
 
-    std::stringstream result;
+    std::stringstream hashInHexadecimalFormat;
     for(auto chunk : hash) {
-        result << std::hex << std::setw(2) << std::setfill('0') << (uint32_t)chunk;
+        hashInHexadecimalFormat << std::hex << std::setw(2) << std::setfill('0') << (uint32_t) chunk;
     }
 
-    return result.str();
+    return hashInHexadecimalFormat.str();
 }
 
-void sha1_C_style(const char* filePath) {
-    SHA_CTX SHA1_context;
-    // TODO rename SHA1_context to sha1_context
-    //SHA_CTX* SHA1_context = (SHA_CTX*) calloc(1, sizeof(SHA_CTX));
-    SHA1_Init(&SHA1_context);
+void sha1_C_style_static_alloc(const char* filePath) {
+    SHA_CTX sha1Context;
+    SHA1_Init(&sha1Context);
 
-    uint32_t bytes;
-    unsigned char data[1024];
-    //char* data = (unsigned char*) calloc(1024, sizeof(unsigned char));
+    uint32_t bytesRead;
+    uint8_t chunkBuffer[1024];
+    const size_t CHUNK_SIZE = 1024;
     FILE* file = fopen(filePath, "rb");
 
-    while( (bytes = fread(data, 1, 1024, file) ) != 0 ) {
-        SHA1_Update(&SHA1_context, data, bytes);
+    while( (bytesRead = fread(chunkBuffer, 1, CHUNK_SIZE, file) ) != 0 ) {
+        SHA1_Update(&sha1Context, chunkBuffer, bytesRead);
     }
 
-    unsigned char hash[SHA_DIGEST_LENGTH];
-    //unsigned char* hash = (unsigned char*) calloc(SHA_DIGEST_LENGTH, sizeof(unsigned char));
-    SHA1_Final(hash, &SHA1_context);
+    uint8_t hash[SHA_DIGEST_LENGTH];
+    SHA1_Final(hash, &sha1Context);
 
-    char result[2*SHA_DIGEST_LENGTH];
-    //char* result = (char*) calloc(SHA_DIGEST_LENGTH * 2 + 1, sizeof(char));   // + 1 for the null character '\0' for terminating string
+    char hashInHexadecimalFormat[2 * SHA_DIGEST_LENGTH];
     for(int32_t chunkPosition=0; chunkPosition < SHA_DIGEST_LENGTH; ++chunkPosition) {
-        sprintf(&(result[chunkPosition * 2]), "%02x", hash[chunkPosition] );
+        sprintf(&(hashInHexadecimalFormat[chunkPosition * 2]), "%02x", hash[chunkPosition] );
     }
 
-    printf("%s",result);
+    printf("%s", hashInHexadecimalFormat);
 
     fclose(file);
 
-    //return ??? not local variable 'result' but something dynamically allocated that the caller code will need to deallocate.
+    // no return because we would return a pointer to a local variable, which are discarded at the closing curly brace of this function; therefore we print the output to the terminal as a feedback and a side-effect
+}
 
-    //result = NULL;
-    //free(result);
+char* sha1_C_style_dynamic_alloc(const char* filePath) {
+    SHA_CTX* sha1Context = (SHA_CTX*) calloc(1, sizeof(SHA_CTX) );
+    SHA1_Init(sha1Context);
+
+    uint32_t bytesRead;
+    uint8_t* chunkBuffer = (uint8_t*) calloc(1024, sizeof(uint8_t) );
+    const size_t CHUNK_SIZE = 1024;
+    FILE* file = fopen(filePath, "rb");
+
+    while( (bytesRead = fread(chunkBuffer, 1, CHUNK_SIZE, file) ) != 0 ) {
+        SHA1_Update(sha1Context, chunkBuffer, bytesRead);
+    }
+
+    free(chunkBuffer);
+    chunkBuffer = NULL;     // sanitize dangling pointer
+
+    uint8_t* hash = (uint8_t*) calloc(SHA_DIGEST_LENGTH, sizeof(uint8_t) );
+    SHA1_Final(hash, sha1Context);
+
+    free(sha1Context);
+    sha1Context = NULL;
+
+    //char* hashInHexadecimalFormat = (char*) calloc(SHA_DIGEST_LENGTH * 2, sizeof(char));   // error: 'Corrupted size vs. prev_size' or 'malloc(): invalid next size (unsorted)'
+    char* hashInHexadecimalFormat = (char*) calloc(SHA_DIGEST_LENGTH * 2 + 1, sizeof(char));   // add one extra position at the end of the buffer '+ 1' for the 'null terminator' '\0' that terminates the string, in order to prevent error 'Corrupted size vs. prev_size' and other errors and undefined behaviors - https://cppsecrets.com/users/931049711497106109971151165748485664103109971051084699111109/C00-Program-to-Find-Hash-of-File.php
+    for(int32_t chunkPosition=0; chunkPosition < SHA_DIGEST_LENGTH; ++chunkPosition) {
+        sprintf( &(hashInHexadecimalFormat[chunkPosition * 2] ), "%02x", hash[chunkPosition] );
+    }
+
+    free(hash);
+    hash = NULL;
+
+    fclose(file);
+
+    return hashInHexadecimalFormat; // remember to free the pointer in the caller code, i. e. free the pointer on the client side
 }
 
 int main() {
@@ -96,25 +135,22 @@ int main() {
     std::cout << "Extension: " << aPath.extension() << std::endl;
 
     for (const auto& entry : fs::directory_iterator(aPath)) {
-        const auto filenameStr = entry.path().filename().string();
+        //const auto filenameStr = entry.path().filename().string();
         const auto absolutePathForFile = entry.path().string();
-        if (entry.is_regular_file()) {
-            // show absolute file basePath
+        if (entry.is_regular_file() ) {
             std::cout << "file: " << absolutePathForFile << '\n';
 
-            // generate hash from a file, which is read as text, regardless whether the file is in a plain-text or binary format
-            //auto fileAsString = convertFileToString(absolutePathForFile);
-            //auto sha256AsString = sha256_CPP_style(absolutePathForFile);
-            //std::cout << "hash: " << sha256AsString << '\n';
+            std::string shaAsString = sha256_CPP_style(absolutePathForFile);
+            std::cout << "sha256-cpp:     " << shaAsString << '\n';
 
-            //getFileHash(absolutePathForFile.c_str());
+            std::cout << "sha1-c-static:  ";
+            sha1_C_style_static_alloc(absolutePathForFile.c_str() );
+            std::cout << '\n';
 
-            //auto shaAsString = getFileHash(absolutePathForFile.c_str());
-            auto shaAsString = sha256_CPP_style(absolutePathForFile);
-            std::cout << "hash: " << shaAsString << '\n';
-
-            std::cout << "hash: ";
-            sha1_C_style(absolutePathForFile.c_str());
+            char* sha1AsString = sha1_C_style_dynamic_alloc(absolutePathForFile.c_str() );
+            std::cout << "sha1-c-dynamic: " << sha1AsString;
+            free(sha1AsString);
+            sha1AsString = NULL;
             std::cout << '\n';
 
             std::cout << "---" << '\n';
@@ -145,11 +181,16 @@ int main() {
     // - display message "The files in the directory do not match the original file list"
     // exit 1
 
-    auto filesWithHashes = std::map<std::string, std::string>();
-    //auto originalFiles = std::map<Hash, Path>();
+    //auto allFiles = std::vector<File>{};
+    // sort 'allFiles' by path - so that the files with names that contain '(copy N)' will be after the original file, thus the original file remains and the '(copy N)' files will be marked as duplicates if they have the same has and moved to a separate directory designated for duplicate files
 
-    auto duplicateFiles = std::multimap<std::string, std::string>();
-    //auto duplicateFiles = std::map<Hash, Path>();
+    auto originalFiles = std::map<
+        std::reference_wrapper<std::string>,    // reference to 'hash' member from File object from the vector
+        std::reference_wrapper<std::string>>(); // reference to 'absolutePath' from File object from the vector
+
+    auto duplicateFiles = std::multimap<
+        std::reference_wrapper<std::string>,    // reference to 'hash' member from File object from the vector
+        std::reference_wrapper<std::string>>(); // reference to 'absolutePath' from File object from the vector
 
     return 0;
 }
