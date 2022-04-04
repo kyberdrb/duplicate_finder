@@ -11,7 +11,9 @@
 #include <iomanip>
 
 #include <list>
+
 #include <map>
+#include <functional>
 
 void insertFileInSortedAlphabeticallyAscendingly(std::unique_ptr<File> file,
                                                  std::list<std::unique_ptr<File>> allFilesInDirectory);
@@ -179,10 +181,36 @@ int main() {
         //    std::cout << "??    " << filenameStr << '\n';
     }
 
+    std::map<std::string, int> myMap;
+    myMap.emplace(std::make_pair("earth", 1));
+    myMap.emplace(std::make_pair("moon", 2));
 
-    auto originalFiles = std::map<
-        std::reference_wrapper<std::string>,    // reference to 'hash' member from File object from the vector
-        std::reference_wrapper<File>>(); // reference to 'absolutePath' from File object from the vector
+    std::map<int, std::reference_wrapper<const File>> mb1;
+    const File& f1 = *(allFilesInDirectory.begin()->get());
+    mb1.emplace(0, std::cref(f1));
+
+    std::map<std::string, std::reference_wrapper<const File>> mb2;
+    //std::map<std::string, std::reference_wrapper<const File>, stringComparator> mb2;
+    const File& f2 = *(allFilesInDirectory.begin()->get());
+    mb2.emplace("hello", std::cref(f2));
+
+    struct stringComparator {
+        bool operator()(const std::string& a, const std::string& b) const {
+            return a < b;
+        }
+    };
+
+    //std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<const File>> mb3;
+    std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<const File>, stringComparator> mb3;
+    const File& f3 = *(allFilesInDirectory.begin()->get());
+    const std::string key {"hello"};
+    mb3.emplace(key, std::cref(f3));
+
+//    auto originalFiles = std::map<
+//        std::reference_wrapper<std::string>,    // reference to 'hash' member from File object from the vector
+//        std::reference_wrapper<File>>(); // reference to 'absolutePath' from File object from the vector
+
+    std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<const File>, stringComparator> originalFiles;
 
     auto duplicateFiles = std::multimap<
         std::reference_wrapper<std::string>,    // reference to 'hash' member from File object from the vector
@@ -193,10 +221,15 @@ int main() {
         std::cout << "\t";
         std::cout << file->getAbsolutePath();
         std::cout << "\n";
-        std::cout << "---" << '\n';
+        //std::cout << "---" << '\n';
 
         // According to the C++ reference docs, "the insertion operation checks whether each inserted element has a key equivalent to the one of an element already in the container, and if so, the element is not inserted"
         // insert hash-File as key-value pair into the original files.
+        const std::string& hash = file->getHash();
+        const File& fileReference = *(file.get());
+        originalFiles.emplace(hash, fileReference);
+        // or explicitly
+        //originalFiles.emplace(hash, std::cref(fileReference));
     }
 
     // clean_up

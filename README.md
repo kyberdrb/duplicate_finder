@@ -8,7 +8,8 @@ A report is generated and saved in the separate directory with duplicate files. 
 
 ## Dependencies
 
-`openssl`
+- compiler: C++17 and newer
+- packages: `openssl`
 
 ## Sources
 
