@@ -1,12 +1,7 @@
+#include "File.h"
+
 #include <iostream>
 
-#include <filesystem>
-namespace fs = std::filesystem;
-
-//#include <experimental/filesystem>
-//namespace fs = std::experimental::filesystem;
-
-#include <string>
 #include <fstream>
 #include "openssl/sha.h"
 #include <vector>
@@ -15,7 +10,11 @@ namespace fs = std::filesystem;
 #include <cstdint>
 #include <iomanip>
 
+#include <list>
 #include <map>
+
+void insertFileInSortedAlphabeticallyAscendingly(std::unique_ptr<File> file,
+                                                 std::list<std::unique_ptr<File>> allFilesInDirectory);
 
 // TODO template this for algorithm type - maybe later, when I will create a library for hashing which will be much simpler to use than the raw Crypto++ or OpenSSL libraries, like this for example: std::string sha256HashOfFile = Hasher::sha256sum(filePath);
 std::string sha256_CPP_style(const std::string filePath) {
@@ -130,6 +129,11 @@ int main() {
 
     fs::path aPath {basePath};
 
+    // Preferring list instead of vector because I'll sort entries at insertion/emplacement
+    // which has quadratic n^2 complexity for a vector and linear complexity n for a list
+    //std::vector<std::unique_ptr<File>> allFilesInDirectory;
+    std::list<std::unique_ptr<File>> allFilesInDirectory;
+
     std::cout << "Parent basePath: " << aPath.parent_path() << std::endl;
     std::cout << "Filename: " << aPath.filename() << std::endl;
     std::cout << "Extension: " << aPath.extension() << std::endl;
@@ -138,28 +142,61 @@ int main() {
         //const auto filenameStr = entry.path().filename().string();
         const auto absolutePathForFile = entry.path().string();
         if (entry.is_regular_file() ) {
-            std::cout << "file: " << absolutePathForFile << '\n';
+            //std::cout << "file: " << absolutePathForFile << '\n';
 
             std::string shaAsString = sha256_CPP_style(absolutePathForFile);
-            std::cout << "sha256-cpp:     " << shaAsString << '\n';
+            //std::cout << "sha256-cpp:     " << shaAsString << '\n';
 
-            std::cout << "sha1-c-static:  ";
-            sha1_C_style_static_alloc(absolutePathForFile.c_str() );
-            std::cout << '\n';
+            //std::cout << "sha1-c-static:  ";
+            //sha1_C_style_static_alloc(absolutePathForFile.c_str() );
+            //std::cout << '\n';
 
             char* sha1AsString = sha1_C_style_dynamic_alloc(absolutePathForFile.c_str() );
-            std::cout << "sha1-c-dynamic: " << sha1AsString;
+            //std::cout << "sha1-c-dynamic: " << sha1AsString;
             free(sha1AsString);
             sha1AsString = NULL;
-            std::cout << '\n';
+            //std::cout << '\n';
 
-            std::cout << "---" << '\n';
+            // for constructor with initializing by moving - modern C++ style
+            auto fileInDirectory = std::make_unique<File>(entry, shaAsString);
+
+            // for constructor with initializing by copying - C and obsolete C++ style; doesn't work because I freed and nullified the 'sha1AsString' variable which results in crash at runtime for dereferencing a null pointer
+            //auto fileInDirectory = std::make_unique<File>(entry, sha1AsString);
+
+            // sort files by path - so that the files with names that contain '(copy N)' will be after the original file, thus the original file remains and the '(copy N)' files will be marked as duplicates if they have the same has and moved to a separate directory designated for duplicate files
+            auto iterator = allFilesInDirectory.begin();
+            for (; iterator != allFilesInDirectory.end(); ++iterator) {
+                if (fileInDirectory->getAbsolutePathWithoutExtension() < iterator->get()->getAbsolutePath()) {
+                    break;
+                }
+            }
+            allFilesInDirectory.emplace(iterator, std::move(fileInDirectory));
         }
         //else if (entry.is_directory()) {
         //    std::cout << "dir:  " << filenameStr << '\n';
         //}
         //else
         //    std::cout << "??    " << filenameStr << '\n';
+    }
+
+
+    auto originalFiles = std::map<
+        std::reference_wrapper<std::string>,    // reference to 'hash' member from File object from the vector
+        std::reference_wrapper<File>>(); // reference to 'absolutePath' from File object from the vector
+
+    auto duplicateFiles = std::multimap<
+        std::reference_wrapper<std::string>,    // reference to 'hash' member from File object from the vector
+        std::reference_wrapper<File>>(); // reference to 'absolutePath' from File object from the vector
+
+    for (const auto& file : allFilesInDirectory) {
+        std::cout << file->getHash();
+        std::cout << "\t";
+        std::cout << file->getAbsolutePath();
+        std::cout << "\n";
+        std::cout << "---" << '\n';
+
+        // According to the C++ reference docs, "the insertion operation checks whether each inserted element has a key equivalent to the one of an element already in the container, and if so, the element is not inserted"
+        // insert hash-File as key-value pair into the original files.
     }
 
     // clean_up
@@ -180,17 +217,6 @@ int main() {
     //   - exit 0
     // - display message "The files in the directory do not match the original file list"
     // exit 1
-
-    //auto allFiles = std::vector<File>{};
-    // sort 'allFiles' by path - so that the files with names that contain '(copy N)' will be after the original file, thus the original file remains and the '(copy N)' files will be marked as duplicates if they have the same has and moved to a separate directory designated for duplicate files
-
-    auto originalFiles = std::map<
-        std::reference_wrapper<std::string>,    // reference to 'hash' member from File object from the vector
-        std::reference_wrapper<std::string>>(); // reference to 'absolutePath' from File object from the vector
-
-    auto duplicateFiles = std::multimap<
-        std::reference_wrapper<std::string>,    // reference to 'hash' member from File object from the vector
-        std::reference_wrapper<std::string>>(); // reference to 'absolutePath' from File object from the vector
 
     return 0;
 }
