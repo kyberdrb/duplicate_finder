@@ -19,7 +19,7 @@ void insertFileInSortedAlphabeticallyAscendingly(std::unique_ptr<File> file,
                                                  std::list<std::unique_ptr<File>> allFilesInDirectory);
 
 // TODO template this for algorithm type - maybe later, when I will create a library for hashing which will be much simpler to use than the raw Crypto++ or OpenSSL libraries, like this for example: std::string sha256HashOfFile = Hasher::sha256sum(filePath);
-std::string sha256_CPP_style(const std::string filePath) {
+std::string sha256_CPP_style(const std::string& filePath) {
     SHA256_CTX sha256_context;
     SHA256_Init(&sha256_context);
 
@@ -165,6 +165,7 @@ int main() {
             // for constructor with initializing by copying - C and obsolete C++ style; doesn't work because I freed and nullified the 'sha1AsString' variable which results in crash at runtime for dereferencing a null pointer
             //auto fileInDirectory = std::make_unique<File>(entry, sha1AsString);
 
+            // TODO sort outside of the loop with std::sort - lower complexity: N*N with sorting at insertion vs N + N * log(N) for separating insertion and sorting
             // sort files by path - so that the files with names that contain '(copy N)' will be after the original file, thus the original file remains and the '(copy N)' files will be marked as duplicates if they have the same has and moved to a separate directory designated for duplicate files
             auto iterator = allFilesInDirectory.begin();
             for (; iterator != allFilesInDirectory.end(); ++iterator) {
@@ -190,31 +191,45 @@ int main() {
     mb1.emplace(0, std::cref(f1));
 
     std::map<std::string, std::reference_wrapper<const File>> mb2;
-    //std::map<std::string, std::reference_wrapper<const File>, stringComparator> mb2;
+    //std::map<std::string, std::reference_wrapper<const File>, StringComparator> mb2;  // works without and with explicitly defined comparator
     const File& f2 = *(allFilesInDirectory.begin()->get());
-    mb2.emplace("hello", std::cref(f2));
+    mb2.emplace("hello", f2);
+    mb2.emplace("hi", *(allFilesInDirectory.begin()->get()));
 
-    struct stringComparator {
+    // Using a Functor for string (or object-type key) comparison
+    struct StringComparator {
         bool operator()(const std::string& a, const std::string& b) const {
             return a < b;
         }
     };
 
-    //std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<const File>> mb3;
-    std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<const File>, stringComparator> mb3;
+    //std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<const File>> mb3;                      // Apparently for std::reference
+                                                                                                                        // /usr/include/c++/11.2.0/bits/stl_function.h:386:20: error: no match for ‘operator<’ (operand types are ‘const std::reference_wrapper<const std::__cxx11::basic_string<char> >’ and ‘const std::reference_wrapper<const std::__cxx11::basic_string<char> >’)
+                                                                                                                        //  386 |       { return __x < __y; }
+                                                                                                                        //      |                ~~~~^~~~~
+
+    std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<const File>, StringComparator> mb3;
     const File& f3 = *(allFilesInDirectory.begin()->get());
     const std::string key {"hello"};
     mb3.emplace(key, std::cref(f3));
 
-//    auto originalFiles = std::map<
-//        std::reference_wrapper<std::string>,    // reference to 'hash' member from File object from the vector
-//        std::reference_wrapper<File>>(); // reference to 'absolutePath' from File object from the vector
+    // Using a lambda expression for string (or object-type key) comparison
+//    auto stringComparator = [](const std::string& a, const std::string& b) mutable { return a < b; };
+//    std::map<std::reference_wrapper<
+//        std::reference_wrapper<const std::string>>,                 // reference to 'hash' member from File object from the vector
+//        std::reference_wrapper<const File>, // reference to the File object from the vector
+//        decltype(stringComparator)> originalFiles (stringComparator);
 
-    std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<const File>, stringComparator> originalFiles;
+    std::map<
+            std::reference_wrapper<const std::string>,        // reference to 'hash' member from File object from the vector
+            std::reference_wrapper<const File>,                // reference to the File object from the vector
+            StringComparator
+            >
+        originalFiles;
 
-    auto duplicateFiles = std::multimap<
+    std::multimap<
         std::reference_wrapper<std::string>,    // reference to 'hash' member from File object from the vector
-        std::reference_wrapper<File>>(); // reference to 'absolutePath' from File object from the vector
+        std::reference_wrapper<File>> duplicateFiles; // reference to 'absolutePath' from File object from the vector
 
     for (const auto& file : allFilesInDirectory) {
         std::cout << file->getHash();
@@ -227,9 +242,31 @@ int main() {
         // insert hash-File as key-value pair into the original files.
         const std::string& hash = file->getHash();
         const File& fileReference = *(file.get());
-        originalFiles.emplace(hash, fileReference);
+
+        // TODO check whether the file is missing in the original files. If is missing, add it to the original files. Otherwise add it to the duplicate files
+        // TODO instead of vector being a container of unique_ptrs for Files and map a container of reference to ref_wrap string-ref wrap File pair
+        //   make the vector a container of shared_ptrs on Files and the map an container of
+        //   weak_ptrs to the string (hash in File) and of weak_ptrs to the file itself
+        //originalFiles.emplace(hash, fileReference);     // referencing local variables produces unreadable characters and undefined behavior
+                                                        // when iterating and printing out contents of the map
+
+        originalFiles.emplace(file->getHash(), *(file.get()));
         // or explicitly
-        //originalFiles.emplace(hash, std::cref(fileReference));
+        //originalFiles.emplace(file->getHash(), std::cref(*(file.get())));
+    }
+
+    std::cout << "\n===================================================================\n\n";
+    std::cout << "ORIGINAL FILES - C++11 iteration\n\n";
+
+    for (const auto& keyValuePair : originalFiles) {
+        std::cout << keyValuePair.first.get() << "\t" << keyValuePair.second.get().getAbsolutePath() << "\n";
+    }
+
+    std::cout << "\n===================================================================\n\n";
+    std::cout << "ORIGINAL FILES - C++17 iteration\n\n";
+
+    for (const auto& [key, value] : originalFiles) {
+        std::cout << key.get() << " has value " << value.get().getAbsolutePath() << std::endl;
     }
 
     // clean_up

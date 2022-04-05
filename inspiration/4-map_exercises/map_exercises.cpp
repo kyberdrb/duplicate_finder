@@ -1,3 +1,17 @@
+#include "File.h"
+
+#include <iostream>
+
+#include <fstream>
+#include "openssl/sha.h"
+#include <vector>
+#include <array>
+#include <sstream>
+#include <cstdint>
+#include <iomanip>
+
+#include <list>
+
 #include <map>
 #include <functional>
 
@@ -25,3 +39,27 @@ std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<const
 const File& f3 = *(allFilesInDirectory.begin()->get());
 const std::string key {"hello"};
 mb3.emplace(key, std::cref(f3));
+
+auto&& tempStringComparator = [](const std::string& a, const std::string& b) mutable { return a < b; };
+    auto& stringComparator = tempStringComparator;
+    std::map<std::reference_wrapper<
+        const std::string>,                 // reference to 'hash' member from File object from the vector
+        std::reference_wrapper<const File>, // reference to the File object from the vector
+        decltype(stringComparator)> originalFiles (stringComparator);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

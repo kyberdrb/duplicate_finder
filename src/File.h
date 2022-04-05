@@ -17,7 +17,7 @@ public:
     // assuming all files have the same extension separated by a dot character '.'
     std::string getAbsolutePathWithoutExtension();
 
-    std::string getHash() const;
+    const std::string& getHash() const;
 
 private:
     std::filesystem::directory_entry fileOnFilesystem;

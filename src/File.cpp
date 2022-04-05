@@ -29,6 +29,6 @@ std::string File::getAbsolutePathWithoutExtension() {
     return path;
 }
 
-std::string File::getHash() const {
+const std::string& File::getHash() const {
     return this->hash;
 };
