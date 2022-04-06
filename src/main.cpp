@@ -229,46 +229,60 @@ int main() {
 
     std::map<
             std::reference_wrapper<const std::string>,        // reference to 'hash' member from File object from the vector
-            std::reference_wrapper<const File>,                // reference to the File object from the vector
+            std::reference_wrapper<const File>,               // reference to the File object from the vector
             StringComparator
             >
         originalFiles;
 
     std::multimap<
-        std::reference_wrapper<std::string>,    // reference to 'hash' member from File object from the vector
-        std::reference_wrapper<File>> duplicateFiles; // reference to 'absolutePath' from File object from the vector
+            std::reference_wrapper<const std::string>,    // reference to 'hash' member from File object from the vector
+            std::reference_wrapper<const File>,
+            StringComparator
+            >
+        duplicateFiles;
 
     for (const auto& file : allFilesInDirectory) {
         std::cout << file->getHash();
         std::cout << "\t";
         std::cout << file->getAbsolutePath();
-//        std::cout << "\t";
-//        std::cout << file->getModifiedAbsolutePath();
+        std::cout << "\t";
+        std::cout << file->getModifiedAbsolutePath();
         std::cout << "\n";
         //std::cout << "---" << '\n';
 
         // According to the C++ reference docs, "the insertion operation checks whether each inserted element has a key equivalent to the one of an element already in the container, and if so, the element is not inserted"
         // insert hash-File as key-value pair into the original files.
-        const std::string& hash = file->getHash();
-        const File& fileReference = *(file.get());
+//        const std::string& hash = file->getHash();
+//        const File& fileReference = *(file.get());
 
-        // TODO check whether the file is missing in the original files. If is missing, add it to the original files. Otherwise add it to the duplicate files
         // TODO instead of vector being a container of unique_ptrs for Files and map a container of reference to ref_wrap string-ref wrap File pair
         //   make the vector a container of shared_ptrs on Files and the map an container of
         //   weak_ptrs to the string (hash in File) and of weak_ptrs to the file itself
-        //originalFiles.emplace(hash, fileReference);     // referencing local variables produces unreadable characters and undefined behavior
+        //   C++ combos:
+        //   - 'shared_ptr' and 'weak_ptr'
+        //   - 'unique_ptr' and 'reference_wrapper'
+//        originalFiles.emplace(hash, fileReference);     // referencing local variables produces unreadable characters and undefined behavior
                                                         // when iterating and printing out contents of the map
 
-        originalFiles.emplace(file->getHash(), *(file.get()));
-        // or explicitly
-        //originalFiles.emplace(file->getHash(), std::cref(*(file.get())));
-    }
+        // if the file is missing in the original files
+        //   - by checking if the original files container contains the hash key associated with the file -
+        //   add it to the original files.
+        //   Otherwise add the file to the duplicate files
 
-    std::cout << "\n===================================================================\n\n";
-    std::cout << "ORIGINAL FILES - C++11 iteration\n\n";
+        bool isFileMissing = originalFiles.count(file->getHash()) == 0;
+        if (isFileMissing) {
+            originalFiles.emplace(file->getHash(), *(file.get()));
+            // or explicitly
+            //originalFiles.emplace(file->getHash(), std::cref(*(file.get())));
+            continue;
+        }
 
-    for (const auto& keyValuePair : originalFiles) {
-        std::cout << keyValuePair.first.get() << "\t" << keyValuePair.second.get().getAbsolutePath() << "\n";
+        duplicateFiles.emplace(file->getHash(), *(file.get()));
+
+        //file->addDuplicateFile(*(file.get()));
+
+        const_cast<File&>(originalFiles.at(file->getHash()).get())
+            .addDuplicateFile(*(file.get()));
     }
 
     std::cout << "\n===================================================================\n\n";
@@ -276,13 +290,26 @@ int main() {
 
     std::vector<std::reference_wrapper<const File>> originalFilesInAnotherForm;
 
-    for (const auto& [key, value] : originalFiles) {
-        std::cout << key.get() << " has value " << value.get().getAbsolutePath() << "\n";
-        originalFilesInAnotherForm.emplace_back(value);
+    for (const auto& [hash, file] : originalFiles) {
+        std::cout << hash.get() << " has file " << file.get().getAbsolutePath() << "\n";
+        originalFilesInAnotherForm.emplace_back(file);
+    }
+
+    // clean_up
+    // - iterate all duplicate files
+    //   - display duplicate file basePath with hash
+    //   - display original file basePath with the same hash from the original files
+    //   - move the duplicate file to trash OR make a directory named '.TO_TRASH' in the searched directory and move the duplicate file to the '.TO_TRASH' directory
+
+    std::cout << "\n===================================================================\n\n";
+    std::cout << "DUPLICATE FILES - C++11 iteration\n\n";
+
+    for (const auto& keyValuePair : duplicateFiles) {
+        std::cout << keyValuePair.first.get() << "\t" << keyValuePair.second.get().getAbsolutePath() << "\n";
     }
 
     std::cout << "\n===================================================================\n\n";
-    std::cout << "ORIGINAL FILES - Sorted by name\n\n";
+    std::cout << "ALL ORIGINAL FILES - sorted by name - WITH THEIR DUPLICATES - if any\n\n";
 
     struct compareFilePathsForRawFiles {
         bool operator()(const File& firstFile, const File& secondFile) const {
@@ -293,14 +320,19 @@ int main() {
     std::sort(originalFilesInAnotherForm.begin(), originalFilesInAnotherForm.end(), compareFilePathsForRawFiles());
 
     for (const auto& file : originalFilesInAnotherForm) {
-        std::cout << file.get().getHash() << "\t" << file.get().getAbsolutePath() << "\n";
+        std::cout << file;
     }
 
-    // clean_up
-    // - iterate all duplicate files
-    //   - display duplicate file basePath with hash
-    //   - display original file basePath with the same hash from the original files
-    //   - move the duplicate file to trash OR make a directory named '.TO_TRASH' in the searched directory and move the duplicate file to the '.TO_TRASH' directory
+    std::cout << "\n===================================================================\n\n";
+    std::cout << "ONLY ORIGINAL FILES - sorted by name - THAT HAVE DUPLICATES\n\n";
+
+    //std::sort(originalFilesInAnotherForm.begin(), originalFilesInAnotherForm.end(), compareFilePathsForRawFiles());
+
+    for (const auto& file : originalFilesInAnotherForm) {
+        if (file.get().hasDuplicates()) {
+            std::cout << file;
+        }
+    }
 
     // verify
     // - iterate all files in a directory again
