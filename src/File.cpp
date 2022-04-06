@@ -16,17 +16,22 @@ std::string File::getAbsolutePath() const {
 
 // TODO instead of truncating extension, replace all spaces with underscores
 //  - underscore has bigger code than space so the duplicatefile gets under the original file
-std::string File::getAbsolutePathWithoutExtension() {
-    auto path = this->fileOnFilesystem.path().string();
-
-    while (path.back() != '.') {
-        path.pop_back();
+std::string File::getModifiedAbsolutePath() const {
+    std::string modifiedAbsolutePath = this->fileOnFilesystem.path().string();
+    size_t position;
+    while ((position = modifiedAbsolutePath.find(" ")) != std::string::npos) {
+        modifiedAbsolutePath.replace(position, 1, ".");
     }
 
-    // remove the dot
-    path.pop_back();
+    while ((position = modifiedAbsolutePath.find("(")) != std::string::npos) {
+        modifiedAbsolutePath.replace(position, 1, "");
+    }
 
-    return path;
+    while ((position = modifiedAbsolutePath.find(")")) != std::string::npos) {
+        modifiedAbsolutePath.replace(position, 1, "");
+    }
+
+    return modifiedAbsolutePath;
 }
 
 const std::string& File::getHash() const {

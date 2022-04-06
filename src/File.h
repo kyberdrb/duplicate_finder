@@ -15,7 +15,7 @@ public:
     std::string getAbsolutePath() const;
 
     // assuming all files have the same extension separated by a dot character '.'
-    std::string getAbsolutePathWithoutExtension();
+    std::string getModifiedAbsolutePath() const;
 
     const std::string& getHash() const;
 

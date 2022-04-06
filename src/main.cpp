@@ -10,13 +10,9 @@
 #include <cstdint>
 #include <iomanip>
 
-#include <list>
-
 #include <map>
 #include <functional>
-
-void insertFileInSortedAlphabeticallyAscendingly(std::unique_ptr<File> file,
-                                                 std::list<std::unique_ptr<File>> allFilesInDirectory);
+#include <algorithm>
 
 // TODO template this for algorithm type - maybe later, when I will create a library for hashing which will be much simpler to use than the raw Crypto++ or OpenSSL libraries, like this for example: std::string sha256HashOfFile = Hasher::sha256sum(filePath);
 std::string sha256_CPP_style(const std::string& filePath) {
@@ -134,7 +130,7 @@ int main() {
     // Preferring list instead of vector because I'll sort entries at insertion/emplacement
     // which has quadratic n^2 complexity for a vector and linear complexity n for a list
     //std::vector<std::unique_ptr<File>> allFilesInDirectory;
-    std::list<std::unique_ptr<File>> allFilesInDirectory;
+    std::vector<std::unique_ptr<File>> allFilesInDirectory;
 
     std::cout << "Parent basePath: " << aPath.parent_path() << std::endl;
     std::cout << "Filename: " << aPath.filename() << std::endl;
@@ -167,13 +163,15 @@ int main() {
 
             // TODO sort outside of the loop with std::sort - lower complexity: N*N with sorting at insertion vs N + N * log(N) for separating insertion and sorting
             // sort files by path - so that the files with names that contain '(copy N)' will be after the original file, thus the original file remains and the '(copy N)' files will be marked as duplicates if they have the same has and moved to a separate directory designated for duplicate files
-            auto iterator = allFilesInDirectory.begin();
-            for (; iterator != allFilesInDirectory.end(); ++iterator) {
-                if (fileInDirectory->getAbsolutePathWithoutExtension() < iterator->get()->getAbsolutePath()) {
-                    break;
-                }
-            }
-            allFilesInDirectory.emplace(iterator, std::move(fileInDirectory));
+            allFilesInDirectory.emplace_back(std::move(fileInDirectory));
+
+//            auto iterator = allFilesInDirectory.begin();
+//            for (; iterator != allFilesInDirectory.end(); ++iterator) {
+//                if (fileInDirectory->getModifiedAbsolutePath() < iterator->get()->getModifiedAbsolutePath()) {
+//                    break;
+//                }
+//            }
+//            allFilesInDirectory.emplace(iterator, std::move(fileInDirectory));
         }
         //else if (entry.is_directory()) {
         //    std::cout << "dir:  " << filenameStr << '\n';
@@ -181,6 +179,15 @@ int main() {
         //else
         //    std::cout << "??    " << filenameStr << '\n';
     }
+
+    struct compareFilePaths {
+        bool operator()(const std::unique_ptr<File>& firstFile, const std::unique_ptr<File>& secondFile) const {
+            return (firstFile.get()->getModifiedAbsolutePath() < secondFile.get()->getModifiedAbsolutePath());
+            //return (firstFile.get()->getAbsolutePath() < secondFile.get()->getAbsolutePath());
+        }
+    };
+
+    std::sort(allFilesInDirectory.begin(), allFilesInDirectory.end(), compareFilePaths());
 
     std::map<std::string, int> myMap;
     myMap.emplace(std::make_pair("earth", 1));
@@ -235,6 +242,8 @@ int main() {
         std::cout << file->getHash();
         std::cout << "\t";
         std::cout << file->getAbsolutePath();
+//        std::cout << "\t";
+//        std::cout << file->getModifiedAbsolutePath();
         std::cout << "\n";
         //std::cout << "---" << '\n';
 
@@ -265,8 +274,26 @@ int main() {
     std::cout << "\n===================================================================\n\n";
     std::cout << "ORIGINAL FILES - C++17 iteration\n\n";
 
+    std::vector<std::reference_wrapper<const File>> originalFilesInAnotherForm;
+
     for (const auto& [key, value] : originalFiles) {
-        std::cout << key.get() << " has value " << value.get().getAbsolutePath() << std::endl;
+        std::cout << key.get() << " has value " << value.get().getAbsolutePath() << "\n";
+        originalFilesInAnotherForm.emplace_back(value);
+    }
+
+    std::cout << "\n===================================================================\n\n";
+    std::cout << "ORIGINAL FILES - Sorted by name\n\n";
+
+    struct compareFilePathsForRawFiles {
+        bool operator()(const File& firstFile, const File& secondFile) const {
+            return (firstFile.getModifiedAbsolutePath() < secondFile.getModifiedAbsolutePath());
+        }
+    };
+
+    std::sort(originalFilesInAnotherForm.begin(), originalFilesInAnotherForm.end(), compareFilePathsForRawFiles());
+
+    for (const auto& file : originalFilesInAnotherForm) {
+        std::cout << file.get().getHash() << "\t" << file.get().getAbsolutePath() << "\n";
     }
 
     // clean_up
