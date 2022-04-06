@@ -334,6 +334,8 @@ int main() {
         }
     }
 
+    // TODO move all duplicate files in a separate (newly created) directory 'DUPLICATE_FILES'
+
     // verify
     // - iterate all files in a directory again
     //   - if file is present in the searched directory
