@@ -9,6 +9,12 @@
 
 int main(int argc, char** argv) {
     std::string pathToDirectory = argv[1];
+
+    if (pathToDirectory.empty()) {
+        std::cout << "Usage: duplicate_find <PATH_TO_DIRECTORY>";
+        exit(1);
+    }
+
     std::cout << pathToDirectory << std::endl;
 
     auto directory = std::make_unique<Directory>(std::move(pathToDirectory));
