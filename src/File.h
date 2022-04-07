@@ -11,11 +11,12 @@ namespace fs = std::filesystem;
 
 class File {
 public:
-    File(std::filesystem::directory_entry absolutePath, std::string hash);
+    File(const std::filesystem::directory_entry absolutePath, std::string hash);
+
+    std::string getFilename() const;
 
     std::string getAbsolutePath() const;
 
-    // assuming all files have the same extension separated by a dot character '.'
     std::string getModifiedAbsolutePath() const;
 
     const std::string& getHash() const;

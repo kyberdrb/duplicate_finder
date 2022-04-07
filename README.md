@@ -18,7 +18,7 @@ A report is generated and saved in the separate directory with duplicate files. 
 - Hash
 - Directory
 - FilePathsComparator - for vector of all files in dir
-- StringComparator - for string/object-type keys in maps
+- StringComparatorAscending - for string/object-type keys in maps
 - DuplicateFilesHandler
 - ReportGenerator
 

@@ -3,7 +3,7 @@
 #include <algorithm>
 
 File::File(
-    std::filesystem::directory_entry fileOnFilesystem,
+    const std::filesystem::directory_entry fileOnFilesystem,
     std::string hash)
 :
     // Copy values
@@ -21,7 +21,8 @@ std::string File::getAbsolutePath() const {
 
 // for sorting so that the original file gets listed first among duplicate files with similar name
 std::string File::getModifiedAbsolutePath() const {
-    std::string modifiedAbsolutePath = this->fileOnFilesystem.path().string();
+    std::string modifiedAbsolutePath = this->getAbsolutePath();
+
     size_t position;
     int numberOfCharacters = 1;
     while ((position = modifiedAbsolutePath.find(" ")) != std::string::npos) {
@@ -51,4 +52,8 @@ void File::addDuplicateFile(std::reference_wrapper<const File> duplicateFile) {
 
 bool File::hasDuplicates() const {
     return this->duplicateFiles.size() > 0;
+}
+
+std::string File::getFilename() const {
+    return this->fileOnFilesystem.path().filename();
 }
