@@ -154,8 +154,7 @@ void Directory::generateReport() const {
     std::cout << "\n===================================================================\n\n";
     std::cout << "ONLY ORIGINAL FILES - sorted by name - THAT HAVE DUPLICATES\n\n";
 
-    //std::sort(originalFilesInAnotherForm.begin(), originalFilesInAnotherForm.end(), compareFilePathsForRawFiles());
-
+    // assuming that the collection is already sorted
     for (const auto& file : originalFilesInAnotherForm) {
         if (file.get().hasDuplicates()) {
             std::cout << file;
@@ -185,7 +184,7 @@ void Directory::moveDuplicatesToSeparateDirectory() {
 
             const std::string& from = duplicateFile.get().getAbsolutePath();
             const std::string& to = this->pathToDuplicateFilesDirectoryAsText + duplicateFile.get().getFilename();
-//            std::filesystem::rename(from, to);
+            std::filesystem::rename(from, to);
 
         } catch (std::filesystem::filesystem_error& e) {
             std::cout << e.what() << '\n';
@@ -230,7 +229,9 @@ void Directory::verifyFiles() {
 
     assert(numberOfOriginalFiles == this->originalFiles.size());
     assert(numberOfDuplicateFiles >= this->duplicateFiles.size());
-    
+
+    std::cout << "\n";
+
     std::cout << "Number of original files before and after duplicate files moving matches.\n";
     std::cout << "Duplicate files moved successfully.\n";
 }
