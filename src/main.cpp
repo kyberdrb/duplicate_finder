@@ -1,121 +1,17 @@
 #include "File.h"
+#include "HashGenerator.h"
 
 #include <iostream>
 
-#include <fstream>
-#include "openssl/sha.h"
-#include <vector>
-#include <array>
-#include <sstream>
-#include <cstdint>
-#include <iomanip>
-
 #include <map>
 #include <functional>
-#include <algorithm>
-
-// TODO template this for algorithm type - maybe later, when I will create a library for hashing which will be much simpler to use than the raw Crypto++ or OpenSSL libraries, like this for example: std::string sha256HashOfFile = Hasher::sha256sum(filePath);
-std::string sha256_CPP_style(const std::string& filePath) {
-    SHA256_CTX sha256_context;
-    SHA256_Init(&sha256_context);
-
-    std::ifstream file(filePath, std::ios::binary);
-    const size_t CHUNK_SIZE = 1024;
-    // preferring array instead of vector because the size of the buffer will stay the same throughout the entire usage
-    //std::vector<char> chunkBuffer(CHUNK_SIZE, '\0');
-    std::array<char, CHUNK_SIZE> chunkBuffer{'\0'};
-
-    while ( file.read( chunkBuffer.data(), chunkBuffer.size() ) ) {
-        auto bytesRead = file.gcount();
-        SHA256_Update(&sha256_context, chunkBuffer.data(), bytesRead);
-    }
-
-    // Evaluate the last partial chunk
-    // `fin.read(...)` evaluates to false on the last partial block (or eof). You need to process partial reads outside of the while loop `gcount()!=0` - https://stackoverflow.com/questions/35905295/reading-a-file-in-chunks#comment59488065_35905524
-    if (file.gcount() != 0) {
-        SHA256_Update(&sha256_context, chunkBuffer.data(), file.gcount());
-    }
-
-    // preferring array instead of vector because the size of the buffer will stay the same throughout the entire usage
-    //std::vector<uint8_t> hash(SHA256_DIGEST_LENGTH, '\0');
-    std::array<uint8_t, SHA256_DIGEST_LENGTH> hash{'\0'};
-    SHA256_Final(hash.data(), &sha256_context);
-
-    std::stringstream hashInHexadecimalFormat;
-    for(auto chunk : hash) {
-        hashInHexadecimalFormat << std::hex << std::setw(2) << std::setfill('0') << (uint32_t) chunk;
-    }
-
-    return hashInHexadecimalFormat.str();
-}
-
-void sha1_C_style_static_alloc(const char* filePath) {
-    SHA_CTX sha1Context;
-    SHA1_Init(&sha1Context);
-
-    uint32_t bytesRead;
-    uint8_t chunkBuffer[1024];
-    const size_t CHUNK_SIZE = 1024;
-    FILE* file = fopen(filePath, "rb");
-
-    while( (bytesRead = fread(chunkBuffer, 1, CHUNK_SIZE, file) ) != 0 ) {
-        SHA1_Update(&sha1Context, chunkBuffer, bytesRead);
-    }
-
-    uint8_t hash[SHA_DIGEST_LENGTH];
-    SHA1_Final(hash, &sha1Context);
-
-    char hashInHexadecimalFormat[2 * SHA_DIGEST_LENGTH];
-    for(int32_t chunkPosition=0; chunkPosition < SHA_DIGEST_LENGTH; ++chunkPosition) {
-        sprintf(&(hashInHexadecimalFormat[chunkPosition * 2]), "%02x", hash[chunkPosition] );
-    }
-
-    printf("%s", hashInHexadecimalFormat);
-
-    fclose(file);
-
-    // no return because we would return a pointer to a local variable, which are discarded at the closing curly brace of this function; therefore we print the output to the terminal as a feedback and a side-effect
-}
-
-char* sha1_C_style_dynamic_alloc(const char* filePath) {
-    SHA_CTX* sha1Context = (SHA_CTX*) calloc(1, sizeof(SHA_CTX) );
-    SHA1_Init(sha1Context);
-
-    uint32_t bytesRead;
-    uint8_t* chunkBuffer = (uint8_t*) calloc(1024, sizeof(uint8_t) );
-    const size_t CHUNK_SIZE = 1024;
-    FILE* file = fopen(filePath, "rb");
-
-    while( (bytesRead = fread(chunkBuffer, 1, CHUNK_SIZE, file) ) != 0 ) {
-        SHA1_Update(sha1Context, chunkBuffer, bytesRead);
-    }
-
-    free(chunkBuffer);
-    chunkBuffer = NULL;     // sanitize dangling pointer
-
-    uint8_t* hash = (uint8_t*) calloc(SHA_DIGEST_LENGTH, sizeof(uint8_t) );
-    SHA1_Final(hash, sha1Context);
-
-    free(sha1Context);
-    sha1Context = NULL;
-
-    //char* hashInHexadecimalFormat = (char*) calloc(SHA_DIGEST_LENGTH * 2, sizeof(char));   // error: 'Corrupted size vs. prev_size' or 'malloc(): invalid next size (unsorted)'
-    char* hashInHexadecimalFormat = (char*) calloc(SHA_DIGEST_LENGTH * 2 + 1, sizeof(char));   // add one extra position at the end of the buffer '+ 1' for the 'null terminator' '\0' that terminates the string, in order to prevent error 'Corrupted size vs. prev_size' and other errors and undefined behaviors - https://cppsecrets.com/users/931049711497106109971151165748485664103109971051084699111109/C00-Program-to-Find-Hash-of-File.php
-    for(int32_t chunkPosition=0; chunkPosition < SHA_DIGEST_LENGTH; ++chunkPosition) {
-        sprintf( &(hashInHexadecimalFormat[chunkPosition * 2] ), "%02x", hash[chunkPosition] );
-    }
-
-    free(hash);
-    hash = NULL;
-
-    fclose(file);
-
-    return hashInHexadecimalFormat; // remember to free the pointer in the caller code, i. e. free the pointer on the client side
-}
 
 int main() {
     std::string basePath = "/home/laptop/backup-sony_xa1/apps";
     std::cout << basePath << std::endl;
+
+    // auto directory = std::make_unique<Directory>(pathToDirectory);
+    // directory->scan();
 
     // look_up
     // - iterate all files in a directory
@@ -124,13 +20,10 @@ int main() {
     //      - add the file basePath to the duplicate files (multimap? because there might be multiple duplicate files with the same hash?)
     //      - continue
     //   - add the file basePath to the original files
-
     fs::path aPath {basePath};
 
-    // Preferring list instead of vector because I'll sort entries at insertion/emplacement
-    // which has quadratic n^2 complexity for a vector and linear complexity n for a list
-    //std::vector<std::unique_ptr<File>> allFilesInDirectory;
     std::vector<std::unique_ptr<File>> allFilesInDirectory;
+    std::unique_ptr<HashGenerator> hashGenerator{};
 
     std::cout << "Parent basePath: " << aPath.parent_path() << std::endl;
     std::cout << "Filename: " << aPath.filename() << std::endl;
@@ -142,36 +35,30 @@ int main() {
         if (entry.is_regular_file() ) {
             //std::cout << "file: " << absolutePathForFile << '\n';
 
-            std::string shaAsString = sha256_CPP_style(absolutePathForFile);
-            //std::cout << "sha256-cpp:     " << shaAsString << '\n';
+            std::string shaAsString{};
 
-            //std::cout << "sha1-c-static:  ";
-            //sha1_C_style_static_alloc(absolutePathForFile.c_str() );
-            //std::cout << '\n';
+            shaAsString = hashGenerator->sha256_CPP_style(absolutePathForFile);
 
-            char* sha1AsString = sha1_C_style_dynamic_alloc(absolutePathForFile.c_str() );
-            //std::cout << "sha1-c-dynamic: " << sha1AsString;
-            free(sha1AsString);
-            sha1AsString = NULL;
-            //std::cout << '\n';
+//            std::cout << "sha1-c-static:  ";
+//            hashGenerator->sha1_C_style_static_alloc(absolutePathForFile.c_str() );
+//            std::cout << '\n';
 
-            // for constructor with initializing by moving - modern C++ style
+            // C-style hash generation
+//            char* sha1AsString = sha1_C_style_dynamic_alloc(absolutePathForFile.c_str() );
+//            auto fileInDirectory = std::make_unique<File>(entry, sha1AsString);
+
+            // for 'sha1AsString' as 'char*'
+//            if (sha1AsString != NULL) {
+//                free(sha1AsString);
+//                sha1AsString = NULL;
+//            }
+
+            // C-Plus-Plus-ified C-style hash generation
+//            shaAsString = hashGenerator->sha1_C_style_dynamic_alloc(absolutePathForFile.c_str() );
+
             auto fileInDirectory = std::make_unique<File>(entry, shaAsString);
 
-            // for constructor with initializing by copying - C and obsolete C++ style; doesn't work because I freed and nullified the 'sha1AsString' variable which results in crash at runtime for dereferencing a null pointer
-            //auto fileInDirectory = std::make_unique<File>(entry, sha1AsString);
-
-            // TODO sort outside of the loop with std::sort - lower complexity: N*N with sorting at insertion vs N + N * log(N) for separating insertion and sorting
-            // sort files by path - so that the files with names that contain '(copy N)' will be after the original file, thus the original file remains and the '(copy N)' files will be marked as duplicates if they have the same has and moved to a separate directory designated for duplicate files
             allFilesInDirectory.emplace_back(std::move(fileInDirectory));
-
-//            auto iterator = allFilesInDirectory.begin();
-//            for (; iterator != allFilesInDirectory.end(); ++iterator) {
-//                if (fileInDirectory->getModifiedAbsolutePath() < iterator->get()->getModifiedAbsolutePath()) {
-//                    break;
-//                }
-//            }
-//            allFilesInDirectory.emplace(iterator, std::move(fileInDirectory));
         }
         //else if (entry.is_directory()) {
         //    std::cout << "dir:  " << filenameStr << '\n';
@@ -180,14 +67,16 @@ int main() {
         //    std::cout << "??    " << filenameStr << '\n';
     }
 
-    struct compareFilePaths {
+    struct FilePathsComparator {
         bool operator()(const std::unique_ptr<File>& firstFile, const std::unique_ptr<File>& secondFile) const {
             return (firstFile.get()->getModifiedAbsolutePath() < secondFile.get()->getModifiedAbsolutePath());
             //return (firstFile.get()->getAbsolutePath() < secondFile.get()->getAbsolutePath());
         }
     };
 
-    std::sort(allFilesInDirectory.begin(), allFilesInDirectory.end(), compareFilePaths());
+    // sort files by path and list original files first, but perform sorting outside of the loop with std::sort, instead of sorting at insertion
+    //  because of lower algorithmic complexity: N*N with sorting at insertion vs N [insertion] + N * log(N) [sorting] for separated insertion and sorting
+    std::sort(allFilesInDirectory.begin(), allFilesInDirectory.end(), FilePathsComparator());
 
     std::map<std::string, int> myMap;
     myMap.emplace(std::make_pair("earth", 1));
@@ -219,6 +108,8 @@ int main() {
     const File& f3 = *(allFilesInDirectory.begin()->get());
     const std::string key {"hello"};
     mb3.emplace(key, std::cref(f3));
+
+    // directory->findDuplicates();
 
     // Using a lambda expression for string (or object-type key) comparison
 //    auto stringComparator = [](const std::string& a, const std::string& b) mutable { return a < b; };
@@ -279,19 +170,20 @@ int main() {
 
         duplicateFiles.emplace(file->getHash(), *(file.get()));
 
-        //file->addDuplicateFile(*(file.get()));
-
         const_cast<File&>(originalFiles.at(file->getHash()).get())
             .addDuplicateFile(*(file.get()));
     }
 
+    // auto reportGenerator = std::make_unique<ReportGenerator>(directory);
+    // reportGenerator->generateTerminalReport();
+    // reportGenerator->generateFileReport();
     std::cout << "\n===================================================================\n\n";
     std::cout << "ORIGINAL FILES - C++17 iteration\n\n";
 
     std::vector<std::reference_wrapper<const File>> originalFilesInAnotherForm;
 
     for (const auto& [hash, file] : originalFiles) {
-        std::cout << hash.get() << " has file " << file.get().getAbsolutePath() << "\n";
+        std::cout << hash.get() << "\t" << file.get().getAbsolutePath() << "\n";
         originalFilesInAnotherForm.emplace_back(file);
     }
 

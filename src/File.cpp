@@ -6,8 +6,11 @@ File::File(
     std::filesystem::directory_entry fileOnFilesystem,
     std::string hash)
 :
+    // Copy values
 //    fileOnFilesystem(fileOnFilesystem),
 //    hash(hash)
+
+    // Move values
     fileOnFilesystem(std::move(fileOnFilesystem)),
     hash(std::move(hash))
 {}

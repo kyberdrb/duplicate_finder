@@ -8,8 +8,28 @@ A report is generated and saved in the separate directory with duplicate files. 
 
 ## Dependencies
 
-- compiler: C++17 and newer
-- packages: `openssl`
+- compiler supporting C++17 standard or newer
+- packages: `openssl` for generating hash
+
+## Design
+
+- HashGenerator
+- File
+- Hash
+- Directory
+- FilePathsComparator - for vector of all files in dir
+- StringComparator - for string/object-type keys in maps
+- DuplicateFilesHandler
+- ReportGenerator
+
+## Hints
+
+- Sledovat typovu zhodu a konstantnost typu pre:  
+typ elementu v kontaineri `<=>` typ elementu v cykle pri iterovani `<=>` typ elementu v navratovej hodnote `<=>` typ elementu pri vkladani `<=>` typ parametra vo funkcii v ktorej element chceme pouzit
+- `reference_wrapped` prijma aj rvalue referencie
+    
+      duplicateFiles.emplace(file->getHash(), *(file.get()));
+
 
 ## Sources
 
