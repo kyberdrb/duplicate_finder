@@ -25,7 +25,18 @@ public:
 
     bool hasDuplicates() const;
 
-    friend std::ostream& operator<<(std::ostream& out, const File& file);
+    friend std::ostream& operator<<(std::ostream& out, const File& file) {
+        out << file.getHash() << "\t" << file.getAbsolutePath() << "\n";
+
+        bool hasFileDuplicates = file.duplicateFiles.size() > 0;
+        if (hasFileDuplicates) {
+            for (const auto& duplicateFile : file.duplicateFiles) {
+                out << "- duplicate file: "<< duplicateFile.get().getHash() << "\t" << duplicateFile.get().getAbsolutePath() << "\n";
+            }
+        }
+
+        return out;
+    }
 
 private:
     std::filesystem::directory_entry fileOnFilesystem;
@@ -34,17 +45,17 @@ private:
     std::vector<std::reference_wrapper<const File>> duplicateFiles;
 };
 
-inline std::ostream& operator<<(std::ostream& out, const File& file) {
-    out << file.getHash() << "\t" << file.getAbsolutePath() << "\n";
-
-    // if file has any duplicated
-    bool hasFileDuplicates = file.duplicateFiles.size() > 0;
-    if (hasFileDuplicates) {
-        // for each file in duplicate files
-        for (const auto& duplicateFile : file.duplicateFiles) {
-            out << "- duplicate file: "<< duplicateFile.get().getHash() << "\t" << duplicateFile.get().getAbsolutePath() << "\n";
-        }
-    }
-
-    return out;
-}
+//inline std::ostream& operator<<(std::ostream& out, const File& file) {
+//    out << file.getHash() << "\t" << file.getAbsolutePath() << "\n";
+//
+//    // if file has any duplicated
+//    bool hasFileDuplicates = file.duplicateFiles.size() > 0;
+//    if (hasFileDuplicates) {
+//        // for each file in duplicate files
+//        for (const auto& duplicateFile : file.duplicateFiles) {
+//            out << "- duplicate file: "<< duplicateFile.get().getHash() << "\t" << duplicateFile.get().getAbsolutePath() << "\n";
+//        }
+//    }
+//
+//    return out;
+//}

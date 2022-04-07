@@ -18,7 +18,7 @@ public:
     // - iterate all files in a directory
     //   - compute hash for each file
     //   - if hash exists already in the original files (map? because I want to store only unique files?)
-    //      - add the file pathToDirectory to the duplicate files (multimap? because there might be multiple duplicate files with the same hash?)
+    //      - add the file pathToDirectoryAsText to the duplicate files (multimap? because there might be multiple duplicate files with the same hash?)
     //      - continue
     //   - add the file to the original files
     void scan();
@@ -31,16 +31,30 @@ public:
 
     // generate report
     // - iterate all duplicate files
-    //   - display duplicate file pathToDirectory with hash
-    //   - display original file pathToDirectory with the same hash from the original files
+    //   - display duplicate file pathToDirectoryAsText with hash
+    //   - display original file pathToDirectoryAsText with the same hash from the original files
     void generateReport() const;
 
     // tidy_up
     //   - move the duplicate file to trash OR make a directory named '.TO_TRASH' in the searched directory and move the duplicate file to the '.TO_TRASH' directory
     void moveDuplicatesToSeparateDirectory();
 
+    // verify
+    // - iterate all files in a directory again
+    //   - if file is present in the searched directory
+    //     - continue
+    //   - display error "File not matched"
+    //
+    // - compare the number of entries in original files and the number of files in the searched directory
+    // - if they're matching
+    //   - display message "In the directory are present only unique files"
+    //   - exit 0
+    // - display message "The files in the directory do not match the original file list"
+    // exit 1
+    void verifyFiles();
+
 private:
-    std::string pathToDirectory;
+    std::string pathToDirectoryAsText;
 
     std::vector<std::unique_ptr<File>> allFilesInDirectory;
 
@@ -64,4 +78,6 @@ private:
             StringComparatorAscending
     >
             duplicateFiles;
+
+    std::string pathToDuplicateFilesDirectoryAsText;
 };

@@ -4,14 +4,15 @@
 #include "HashGenerator.h"
 
 #include <algorithm>
+#include <cassert>
 #include <iostream>
 
 Directory::Directory(std::string pathToDirectory) :
-    pathToDirectory(std::move(pathToDirectory))
+        pathToDirectoryAsText(std::move(pathToDirectory))
 {}
 
 const std::string& Directory::getPathToDirectory() const {
-    return pathToDirectory;
+    return pathToDirectoryAsText;
 }
 
 void Directory::scan() {
@@ -19,9 +20,9 @@ void Directory::scan() {
     
     std::unique_ptr<HashGenerator> hashGenerator{};
 
-    std::cout << "Parent pathToDirectory: " << aPath.parent_path() << std::endl;
-    std::cout << "Filename: " << aPath.filename() << std::endl;
-    std::cout << "Extension: " << aPath.extension() << std::endl;
+//    std::cout << "Parent pathToDirectoryAsText: " << aPath.parent_path() << "\n";
+//    std::cout << "Filename: " << aPath.filename() << "\n";
+//    std::cout << "Extension: " << aPath.extension() << "\n";
 
     for (const auto& entry : fs::directory_iterator(aPath)) {
         //const auto filenameStr = entry.path().filename().string();
@@ -119,12 +120,6 @@ void Directory::findDuplicates() {
 
 void Directory::generateReport() const {
     std::cout << "\n===================================================================\n\n";
-    std::cout
-        << "Found " << this->allFilesInDirectory.size() << " files: "
-        << this->originalFiles.size() << " original files and "
-        << this->duplicateFiles.size() << " duplicate files" << "\n";
-
-    std::cout << "\n===================================================================\n\n";
     std::cout << "ORIGINAL FILES - C++17 iteration\n\n";
 
     std::vector<std::reference_wrapper<const File>> originalFilesInAnotherForm;
@@ -172,27 +167,70 @@ void Directory::moveDuplicatesToSeparateDirectory() {
     std::cout << "\n===================================================================\n\n";
     std::cout << "MOVING DUPLICATE FILES\n\n";
 
-    if (this->pathToDirectory.at(this->pathToDirectory.size() - 1) == '/') {
-        this->pathToDirectory.pop_back();
+    bool endsPathToDirectoryWithForwardSlash = this->pathToDirectoryAsText.at(this->pathToDirectoryAsText.size() - 1) == '/';
+    if (endsPathToDirectoryWithForwardSlash) {
+        this->pathToDirectoryAsText.pop_back();
     }
 
-    std::string pathToDuplicateFilesDirectory = this->pathToDirectory + "/DUPLICATE_FILES/";
-    std::filesystem::create_directories(pathToDuplicateFilesDirectory);
+    this->pathToDuplicateFilesDirectoryAsText = this->pathToDirectoryAsText + "/DUPLICATE_FILES/";
+    std::filesystem::create_directories(this->pathToDuplicateFilesDirectoryAsText);
 
     for (const auto& [hash, duplicateFile] : this->duplicateFiles) {
         try {
             std::cout << "Moving duplicate file\n";
             std::cout << "\t" << duplicateFile.get().getAbsolutePath() << "\n";
             std::cout << "to a separate directory for duplicate files\n";
-            std::cout << "\t" << pathToDuplicateFilesDirectory + duplicateFile.get().getFilename() << "\n";
+            std::cout << "\t" << this->pathToDuplicateFilesDirectoryAsText + duplicateFile.get().getFilename() << "\n";
             std::cout << "---\n";
 
             const std::string& from = duplicateFile.get().getAbsolutePath();
-            const std::string& to = pathToDuplicateFilesDirectory + duplicateFile.get().getFilename();
-            std::filesystem::rename(from, to);
+            const std::string& to = this->pathToDuplicateFilesDirectoryAsText + duplicateFile.get().getFilename();
+//            std::filesystem::rename(from, to);
 
         } catch (std::filesystem::filesystem_error& e) {
             std::cout << e.what() << '\n';
         }
     }
+}
+
+void Directory::verifyFiles() {
+    std::cout << "\n===================================================================\n\n";
+    std::cout << "Before move:\n";
+    std::cout
+            << "Found " << this->allFilesInDirectory.size() << " files:\n"
+            << this->originalFiles.size() << " original files and "
+            << this->duplicateFiles.size() << " duplicate files" << "\n";
+
+    fs::path pathToDirectory {this->getPathToDirectory()};
+
+    uint32_t numberOfOriginalFiles{};
+    for (const auto& entry : fs::directory_iterator(pathToDirectory)) {
+        //const auto filenameStr = entry.path().filename().string();
+        const auto absolutePathForFile = entry.path().string();
+        if (entry.is_regular_file()) {
+            numberOfOriginalFiles++;
+        }
+    }
+
+    uint32_t numberOfDuplicateFiles{};
+    for (const auto& entry : fs::directory_iterator(this->pathToDuplicateFilesDirectoryAsText)) {
+        //const auto filenameStr = entry.path().filename().string();
+        const auto absolutePathForFile = entry.path().string();
+        if (entry.is_regular_file()) {
+            numberOfDuplicateFiles++;
+        }
+    }
+
+    std::cout << "\n";
+
+    std::cout << "After move:\n";
+    std::cout
+            << "Found:\n" << numberOfOriginalFiles << " original files and "
+            << numberOfDuplicateFiles << " duplicate files" << "\n";
+
+    assert(numberOfOriginalFiles == this->originalFiles.size());
+    assert(numberOfDuplicateFiles >= this->duplicateFiles.size());
+    
+    std::cout << "Number of original files before and after duplicate files moving matches.\n";
+    std::cout << "Duplicate files moved successfully.\n";
 }
