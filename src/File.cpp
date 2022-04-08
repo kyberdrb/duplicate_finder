@@ -1,22 +1,12 @@
 #include "File.h"
 
-#include <algorithm>
-
-File::File(
-    const std::filesystem::directory_entry fileOnFilesystem,
-    std::string hash)
-:
-    // Copy values
-//    fileOnFilesystem(fileOnFilesystem),
-//    hash(hash)
-
-    // Move values
-    fileOnFilesystem(std::move(fileOnFilesystem)),
+File::File(const std::filesystem::directory_entry fileInDirectory, std::unique_ptr<Hash> hash) :
+        fileInDirectory(std::move(fileInDirectory)),
     hash(std::move(hash))
 {}
 
 std::string File::getAbsolutePath() const {
-    return this->fileOnFilesystem.path().string();
+    return this->fileInDirectory.path().string();
 }
 
 // for sorting so that the original file gets listed first among duplicate files with similar name
@@ -30,20 +20,18 @@ std::string File::getModifiedAbsolutePath() const {
     }
 
     while ((position = modifiedAbsolutePath.find("(")) != std::string::npos) {
-        //modifiedAbsolutePath.replace(position, 1, "");
         modifiedAbsolutePath.erase(position, numberOfCharacters);
     }
 
     while ((position = modifiedAbsolutePath.find(")")) != std::string::npos) {
-        //modifiedAbsolutePath.replace(position, 1, "");
         modifiedAbsolutePath.erase(position, numberOfCharacters);
     }
 
     return modifiedAbsolutePath;
 }
 
-const std::string& File::getHash() const {
-    return this->hash;
+const Hash &File::getHash() const {
+    return *(this->hash.get());
 }
 
 void File::addDuplicateFile(std::reference_wrapper<const File> duplicateFile) {
@@ -55,5 +43,5 @@ bool File::hasDuplicates() const {
 }
 
 std::string File::getFilename() const {
-    return this->fileOnFilesystem.path().filename();
+    return this->fileInDirectory.path().filename();
 }

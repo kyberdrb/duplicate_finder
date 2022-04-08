@@ -1,11 +1,7 @@
 #include "Directory.h"
+#include "ReportGenerator.h"
 
 #include <iostream>
-
-#include <map>
-#include <functional>
-
-#include "HashGenerator.h"
 
 int main(int argc, char** argv) {
     std::string pathToDirectory = argv[1];
@@ -23,11 +19,9 @@ int main(int argc, char** argv) {
     directory->sort();
     directory->findDuplicates();
 
-    // TODO delegate report generation on separate class 'ReportGenerator'
-    // auto reportGenerator = std::make_unique<ReportGenerator>(directory);
-    // reportGenerator->generateTerminalReport();
-    // reportGenerator->generateFileReport();
-    directory->generateReport();
+    auto reportGenerator = std::make_unique<ReportGenerator>(*(directory.get()));
+    reportGenerator->generateTerminalReport();
+    //reportGenerator->generateFileReport();
 
     directory->moveDuplicatesToSeparateDirectory();
     directory->verifyFiles();

@@ -1,17 +1,13 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include "Hash.h"
 
 #include <filesystem>
-namespace fs = std::filesystem;
-
-//#include <experimental/filesystem>
-//namespace fs = std::experimental::filesystem;
+#include <vector>
 
 class File {
 public:
-    File(const std::filesystem::directory_entry absolutePath, std::string hash);
+    File(const std::filesystem::directory_entry fileInDirectory, std::unique_ptr<Hash> hash);
 
     std::string getFilename() const;
 
@@ -19,7 +15,7 @@ public:
 
     std::string getModifiedAbsolutePath() const;
 
-    const std::string& getHash() const;
+    const Hash& getHash() const;
 
     void addDuplicateFile(std::reference_wrapper<const File> duplicateFile);
 
@@ -31,7 +27,7 @@ public:
         bool hasFileDuplicates = file.duplicateFiles.size() > 0;
         if (hasFileDuplicates) {
             for (const auto& duplicateFile : file.duplicateFiles) {
-                out << "- duplicate file: "<< duplicateFile.get().getHash() << "\t" << duplicateFile.get().getAbsolutePath() << "\n";
+                out << "- duplicate file: " << duplicateFile.get().getHash() << "\t" << duplicateFile.get().getAbsolutePath() << "\n";
             }
         }
 
@@ -39,23 +35,9 @@ public:
     }
 
 private:
-    std::filesystem::directory_entry fileOnFilesystem;
-    std::string hash;
+    std::filesystem::directory_entry fileInDirectory;
+    std::string hashAsText;
+    std::unique_ptr<Hash> hash;
 
     std::vector<std::reference_wrapper<const File>> duplicateFiles;
 };
-
-//inline std::ostream& operator<<(std::ostream& out, const File& file) {
-//    out << file.getHash() << "\t" << file.getAbsolutePath() << "\n";
-//
-//    // if file has any duplicated
-//    bool hasFileDuplicates = file.duplicateFiles.size() > 0;
-//    if (hasFileDuplicates) {
-//        // for each file in duplicate files
-//        for (const auto& duplicateFile : file.duplicateFiles) {
-//            out << "- duplicate file: "<< duplicateFile.get().getHash() << "\t" << duplicateFile.get().getAbsolutePath() << "\n";
-//        }
-//    }
-//
-//    return out;
-//}

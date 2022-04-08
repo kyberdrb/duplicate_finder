@@ -9,7 +9,7 @@ A report is generated and saved in the separate directory with duplicate files. 
 ## Dependencies
 
 - compiler supporting C++17 standard or newer
-- packages: `openssl` for generating hash
+- packages: `openssl` for generating hashAsText
 
 ## Design
 
@@ -28,8 +28,21 @@ A report is generated and saved in the separate directory with duplicate files. 
 typ elementu v kontaineri `<=>` typ elementu v cykle pri iterovani `<=>` typ elementu v navratovej hodnote `<=>` typ elementu pri vkladani `<=>` typ parametra vo funkcii v ktorej element chceme pouzit
 - `reference_wrapped` prijma aj rvalue referencie
     
-      duplicateFiles.emplace(file->getHash(), *(file.get()));
+      duplicateFiles.emplace(file->getHashAsText(), *(file.get()));
+- These routines for erasing character from string are equivalent
 
+    Remove characters with `replace`
+
+      int numberOfCharacters = 1;
+      while ((position = modifiedAbsolutePath.find("(")) != std::string::npos) {
+          modifiedAbsolutePath.replace(position, 1, "");
+      }
+
+    Remove characters with `erase`
+
+      while ((position = modifiedAbsolutePath.find(")")) != std::string::npos) {
+          modifiedAbsolutePath.erase(position, numberOfCharacters);
+      }
 
 ## Sources
 
@@ -42,7 +55,12 @@ typ elementu v kontaineri `<=>` typ elementu v cykle pri iterovani `<=>` typ ele
     - https://duckduckgo.com/?q=c%2B%2B+include+filesystem+example&t=ffab&ia=web
     - https://carlosvin.github.io/langs/en/posts/recursive-directory-iterator/
     - https://stackoverflow.com/questions/67273/how-do-you-iterate-through-every-file-directory-recursively-in-standard-c/32889434#32889434
-- hash
+    - https://duckduckgo.com/?t=ffab&q=c%2B%2B+std+filesystem+move+file&ia=web
+    - https://stackoverflow.com/questions/22201663/find-and-move-files-in-c
+    - https://stackoverflow.com/questions/22201663/find-and-move-files-in-c/48614612#48614612
+    - https://duckduckgo.com/?t=ffab&q=std%3A%3Afilesystem+c%2B%2B+linker&ia=web&iax=qa
+    - https://stackoverflow.com/questions/55318924/how-to-avoid-stdfilesystem-linker-errors-with-qt#55328592
+- hashAsText
     - **https://duckduckgo.com/?t=ffab&q=c%2B%2B+sha256+checksum&ia=web** - according to this I decided to use OpenSSL library to generate checksum, because `openssl` package is a dependency for `openssh` package, which is more widely used
     - https://stackoverflow.com/questions/31586701/generate-sha256-in-c
     - https://stackoverflow.com/questions/2262386/generate-sha256-with-openssl-and-c/10632725
@@ -60,28 +78,28 @@ typ elementu v kontaineri `<=>` typ elementu v cykle pri iterovani `<=>` typ ele
     - https://archlinux.org/packages/?sort=&q=crypto&maintainer=&flagged=
     - https://archlinux.org/packages/extra/x86_64/botan/
     - https://aur.archlinux.org/packages?O=0&SeB=nd&K=crypto&outdated=&SB=p&SO=d&PP=50&submit=Go
-    - https://duckduckgo.com/?q=crypto%2B%2B+example+hash+file&t=ffab&ia=web
-    - **https://cpp.hotexamples.com/examples/cryptopp/SHA512/-/cpp-sha512-class-examples.html#0x4505bc1003699f447c397e8c358071ae1c57f38b04bd859368e15592cc6ebe1f-13,,27,** - another alternative to generate SHA hash from file: with Crypto++ library
+    - https://duckduckgo.com/?q=crypto%2B%2B+example+hashAsText+file&t=ffab&ia=web
+    - **https://cpp.hotexamples.com/examples/cryptopp/SHA512/-/cpp-sha512-class-examples.html#0x4505bc1003699f447c397e8c358071ae1c57f38b04bd859368e15592cc6ebe1f-13,,27,** - another alternative to generate SHA hashAsText from file: with Crypto++ library
     - https://stackoverflow.com/questions/62216156/how-to-generate-sha256-hashes-of-hexadecimal-binary-data-in-c
     - https://duckduckgo.com/?t=ffab&q=c%2B%2B+sha256sum&ia=web
     - http://www.zedwood.com/article/cpp-sha256-function
-    - https://duckduckgo.com/?q=crypto%2B%2B+example+hash+std%3A%3Afilesystem+path+file&t=ffab&ia=web
+    - https://duckduckgo.com/?q=crypto%2B%2B+example+hashAsText+std%3A%3Afilesystem+path+file&t=ffab&ia=web
     - https://en.cppreference.com/w/cpp/filesystem/path/hash_value
-    - https://stackoverflow.com/questions/53021188/hash-file-recursive-and-save-into-vector-cryptopp
-    - https://duckduckgo.com/?q=c%2B%2B+hash+openssl+fstream&t=ffab&ia=web
+    - https://stackoverflow.com/questions/53021188/hashAsText-file-recursive-and-save-into-vector-cryptopp
+    - https://duckduckgo.com/?q=c%2B%2B+hashAsText+openssl+fstream&t=ffab&ia=web
     - **https://cppsecrets.com/users/931049711497106109971151165748485664103109971051084699111109/C00-Program-to-Find-Hash-of-File.php** - one of the examples that shaped the final C algorithm
-    - **https://cppsecrets.com/users/41129711010797106994610011511264103109971051084699111109/OpenSSL-generate-hash-of-the-file.php** - helpful for linking libraries for successful compiling
+    - **https://cppsecrets.com/users/41129711010797106994610011511264103109971051084699111109/OpenSSL-generate-hashAsText-of-the-file.php** - helpful for linking libraries (adding options for linking to linker in CMake) for successful compiling
     - https://stackoverflow.com/questions/2262386/generate-sha256-with-openssl-and-c
-    - **https://duckduckgo.com/?q=cmake+lcrypto&t=ffab&ia=web** - because I use CMake for this project, and Crypto++ library has problems with CMake apparently, I decided to stay with OpenSSL for hash generating 
+    - **https://duckduckgo.com/?q=cmake+lcrypto&t=ffab&ia=web** - because I use CMake for this project, and Crypto++ library has problems with CMake apparently, I decided to stay with OpenSSL for hashAsText generating 
     - https://duckduckgo.com/?q=cmake+add+link+flags&t=ffab&ia=web
     - https://stackoverflow.com/questions/11783932/how-do-i-add-a-linker-or-compile-flag-in-a-cmake-file
-    - **https://duckduckgo.com/?t=ffab&q=c%2B%2B+hash+binary+file&ia=web** - finally this search offered me a link with a accurate implementation of the SHA algorithm (SHA1)
-    - **https://stackoverflow.com/questions/29416549/getting-hash-of-a-binary-file-c/29418717#29418717** - **_the base source code for the generation of the SHA hash for binary files_**
+    - **https://duckduckgo.com/?t=ffab&q=c%2B%2B+hashAsText+binary+file&ia=web** - finally this search offered me a link with a accurate implementation of the SHA algorithm (SHA1)
+    - **https://stackoverflow.com/questions/29416549/getting-hashAsText-of-a-binary-file-c/29418717#29418717** - **_the base source code for the generation of the SHA hashAsText for binary files_**
     - https://duckduckgo.com/?t=ffab&q=c%2B%2B+fread+fstream&ia=web
     - https://stackoverflow.com/questions/13487461/fread-equivalent-with-fstream
     - https://duckduckgo.com/?t=ffab&q=c%2B%2B+read+file+by+chunks&ia=web
-    - **https://stackoverflow.com/questions/35905295/reading-a-file-in-chunks/35905524#35905524** - **one of the source codes that helped me to rewrite the base C hash algorithm into C++**
-    - **https://stackoverflow.com/questions/35905295/reading-a-file-in-chunks#comment59488065_35905524** - **_this comment helped me to adjust the C++ hash algorithm for accuracy by taking consideration for the last bytes into the hash update algorithm_**
+    - **https://stackoverflow.com/questions/35905295/reading-a-file-in-chunks/35905524#35905524** - **one of the source codes that helped me to rewrite the base C hashAsText algorithm into C++**
+    - **https://stackoverflow.com/questions/35905295/reading-a-file-in-chunks#comment59488065_35905524** - **_this comment helped me to adjust the C++ hashAsText algorithm for accuracy by taking consideration for the last bytes into the hashAsText update algorithm_**
     - https://www.geeksforgeeks.org/dynamic-memory-allocation-in-c-using-malloc-calloc-free-and-realloc/
     - https://www.programiz.com/cpp-programming/library-function/cstdio/sprintf
     - **https://duckduckgo.com/?q=c+corrupted+size+vs.+prev_size+sprintf&t=ffab&ia=web&iax=qa** - this brought me to make a self-reflection and take into consideration that the array of characters needs one place more for a null terminator character in order to be a correct string representation in C - confirmed with the link _https://cppsecrets.com/users/931049711497106109971151165748485664103109971051084699111109/C00-Program-to-Find-Hash-of-File.php_
@@ -94,3 +112,9 @@ typ elementu v kontaineri `<=>` typ elementu v cykle pri iterovani `<=>` typ ele
     - https://duckduckgo.com/?q=c%2B%2B+std%3A%3Aref&t=ffab&ia=web
     - https://stackoverflow.com/questions/7707842/stl-containers-with-reference-to-objects
     - https://duckduckgo.com/?q=c%2B%2B+std+reference_wrapper&t=ffab&ia=web
+- vector, sorting, comparators
+    - https://duckduckgo.com/?t=ffab&q=create+empty+vector+c%2B%2B&ia=web&iax=qa
+    - https://duckduckgo.com/?t=ffab&q=c%2B%2B+vector+create+custom+comparator+sort&ia=web
+    - https://stackoverflow.com/questions/16894700/c-custom-compare-function-for-stdsort
+    - https://www.technicalkeeda.in/2020/10/Sorting-a-vector-of-custom-objects-using-Cpp-stl.html
+    - 

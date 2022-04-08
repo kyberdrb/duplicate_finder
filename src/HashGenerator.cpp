@@ -9,14 +9,14 @@
 #include <iomanip>
 #include <sstream>
 
-// TODO template this for algorithm type - maybe later, when I will create a library for hashing which will be much simpler to use than the raw Crypto++ or OpenSSL libraries, like this for example: std::string sha256HashOfFile = Hasher::sha256sum(filePath);
+// TODO maybe template this, or abstract this into virtual functions, according to the algorithm type - maybe later, when I will create a library for hashing which will be much simpler to use than the raw Crypto++ or OpenSSL libraries, like this for example: std::string sha256HashOfFile = Hasher::sha256sum(filePath);
 std::string HashGenerator::sha256_CPP_style(const std::string& filePath) {
     SHA256_CTX sha256_context;
     SHA256_Init(&sha256_context);
 
     std::ifstream file(filePath, std::ios::binary);
     const size_t CHUNK_SIZE = 1024;
-    // preferring array instead of vector because the size of the buffer will stay the same throughout the entire hash creation process
+    // preferring array instead of vector because the size of the buffer will stay the same throughout the entire hashAsText creation process
     //std::vector<char> chunkBuffer(CHUNK_SIZE, '\0');
     std::array<char, CHUNK_SIZE> chunkBuffer{'\0'};
 
@@ -31,8 +31,8 @@ std::string HashGenerator::sha256_CPP_style(const std::string& filePath) {
         SHA256_Update(&sha256_context, chunkBuffer.data(), file.gcount());
     }
 
-    // preferring array instead of vector because the size of the buffer will stay the same throughout the entire hash creation process
-    //std::vector<uint8_t> hash(SHA256_DIGEST_LENGTH, '\0');
+    // preferring array instead of vector because the size of the buffer will stay the same throughout the entire hashAsText creation process
+    //std::vector<uint8_t> hashAsText(SHA256_DIGEST_LENGTH, '\0');
     std::array<uint8_t, SHA256_DIGEST_LENGTH> hash{'\0'};
     SHA256_Final(hash.data(), &sha256_context);
 
