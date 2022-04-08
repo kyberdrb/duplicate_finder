@@ -117,4 +117,10 @@ typ elementu v kontaineri `<=>` typ elementu v cykle pri iterovani `<=>` typ ele
     - https://duckduckgo.com/?t=ffab&q=c%2B%2B+vector+create+custom+comparator+sort&ia=web
     - https://stackoverflow.com/questions/16894700/c-custom-compare-function-for-stdsort
     - https://www.technicalkeeda.in/2020/10/Sorting-a-vector-of-custom-objects-using-Cpp-stl.html
-    - 
+    - https://newbedev.com/typescript-c-sort-vector-with-custom-comparator-code-example
+    - https://duckduckgo.com/?q=c%2B%2B+vector+sort+at+insert+emplace+push&t=ffab&ia=web
+    - https://www.geeksforgeeks.org/vector-emplace-function-in-c-stl/
+    - https://duckduckgo.com/?t=ffab&q=iterator+to+int&ia=web&iax=qa
+    - https://stackoverflow.com/questions/26995725/how-to-convert-vector-iterator-to-int-in-c#26995815
+- map
+    - I'll leave adding sources regarding map for tomorrow `;)`
