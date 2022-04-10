@@ -109,7 +109,7 @@ void Directory::moveDuplicatesToSeparateDirectory() {
 
             const std::string& from = duplicateFile.get().getAbsolutePath();
             const std::string& to = this->pathToDuplicateFilesDirectoryAsText + duplicateFile.get().getFilename();
-//            std::filesystem::rename(from, to);
+            std::filesystem::rename(from, to);
 
         } catch (std::filesystem::filesystem_error& e) {
             std::cout << e.what() << '\n';
