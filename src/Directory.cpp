@@ -51,25 +51,6 @@ void Directory::findDuplicates() {
 //        std::cout << "\n";
         //std::cout << "---" << '\n';
 
-        // According to the C++ reference docs, "the insertion operation checks whether each inserted element has a key equivalent to the one of an element already in the container, and if so, the element is not inserted"
-        // insert hashAsText-File as key-value pair into the original files.
-//        const std::string& hashAsText = file->getHash();
-//        const File& fileReference = *(file.get());
-
-        // Instead of vector being a container of unique_ptrs for Files and map a container of reference to ref_wrap string-ref wrap File pair
-        //   another solution for storing Files would be to make the vector a container of shared_ptrs on Files and the map an container of
-        //   weak_ptrs to the string (hashAsText in File) and of weak_ptrs to the file itself
-        //   C++ combos:
-        //   - 'shared_ptr' and 'weak_ptr'
-        //   - 'unique_ptr' and 'reference_wrapper'
-//        originalFiles.emplace(hashAsText, fileReference);     // referencing local variables produces unreadable characters and undefined behavior
-        // when iterating and printing out contents of the map
-
-        // if the file is missing in the original files
-        //   - by checking if the original files container contains the hashAsText key associated with the file -
-        //   add it to the original files.
-        //   Otherwise add the file to the duplicate files
-
         bool isFileMissing = originalFiles.count(file->getHash()) == 0;
         if (isFileMissing) {
             originalFiles.emplace(file->getHash(), *(file.get()));
@@ -87,11 +68,13 @@ void Directory::moveDuplicatesToSeparateDirectory() {
     std::cout << "\n===================================================================\n\n";
     std::cout << "MOVING DUPLICATE FILES\n\n";
 
-    // TODO multiplatfofrmize
-    //  ifdef for Windows - variablize current hard-coded forward slash '/' to 'pathSeparator' that assigns
-    //  - forward slash '/' for Linux and Mac, and
-    //  - backward slash '\' for Windows
-    this->pathToDuplicateFilesDirectoryAsText = this->pathToDirectoryAsText + "/DUPLICATE_FILES/";
+    std::string pathDelimiter{"/"};
+
+#if defined(_WIN32) || defined(__WIN32__)
+    pathDelimiter = "\\";
+#endif
+
+    this->pathToDuplicateFilesDirectoryAsText = this->pathToDirectoryAsText + pathDelimiter + "DUPLICATE_FILES" + pathDelimiter;
     bool endsPathToDirectoryWithForwardSlash = this->pathToDirectoryAsText.at(this->pathToDirectoryAsText.size() - 1) == '/';
     if (endsPathToDirectoryWithForwardSlash) {
         this->pathToDirectoryAsText.pop_back();

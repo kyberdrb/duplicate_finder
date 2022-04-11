@@ -9,7 +9,8 @@
 #include <iomanip>
 #include <sstream>
 
-// TODO maybe template this, or abstract this into virtual functions, according to the algorithm type - maybe later, when I will create a library for hashing which will be much simpler to use than the raw Crypto++ or OpenSSL libraries, like this for example: std::string sha256HashOfFile = Hasher::sha256sum(filePath);
+// TODO maybe template this, or abstract this into virtual functions, according to the algorithm type - tested on SHA1 with SHA_CTX and with SHA256 with SHA256_CTX
+//  - maybe later, when I will create a library for hashing which will be much simpler to use than the raw Crypto++ or OpenSSL libraries, like this for example: std::string sha256HashOfFile = Hasher::sha256sum(filePath);
 std::string HashGenerator::sha256_CPP_style(const std::string& filePath) {
     SHA256_CTX sha256_context;
     SHA256_Init(&sha256_context);

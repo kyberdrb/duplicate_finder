@@ -22,7 +22,28 @@ A report is generated and saved in the separate directory with duplicate files. 
 - DuplicateFilesHandler
 - ReportGenerator
 
-## Hints
+## Algorithm notes
+
+// According to the C++ reference docs, "the insertion operation checks whether each inserted element has a key equivalent to the one of an element already in the container, and if so, the element is not inserted"
+// insert hashAsText-File as key-value pair into the original files.
+
+- Instead of vector being a container of unique_ptrs for Files and map a container of reference to ref_wrap string-ref wrap File pair
+  another solution for storing Files would be to make the vector a container of shared_ptrs on Files and the map an container of
+  weak_ptrs to the string (hashAsText in File) and of weak_ptrs to the file itself
+  C++ combos:
+  - 'shared_ptr' and 'weak_ptr'
+  - 'unique_ptr' and 'reference_wrapper'
+
+- referencing local variables produces unreadable characters and undefined behavior
+
+       originalFiles.emplace(hashAsText, fileReference);
+
+   when iterating and printing out contents of the map
+
+- if the file is missing in the original files
+   - by checking if the original files container contains the hashAsText key associated with the file -
+   add it to the original files.
+   Otherwise add the file to the duplicate files
 
 - Sledovat typovu zhodu a konstantnost typu pre:  
 typ elementu v kontaineri `<=>` typ elementu v cykle pri iterovani `<=>` typ elementu v navratovej hodnote `<=>` typ elementu pri vkladani `<=>` typ parametra vo funkcii v ktorej element chceme pouzit
@@ -118,7 +139,6 @@ typ elementu v kontaineri `<=>` typ elementu v cykle pri iterovani `<=>` typ ele
     - https://www.geeksforgeeks.org/vector-emplace-function-in-c-stl/
     - https://duckduckgo.com/?t=ffab&q=iterator+to+int&ia=web&iax=qa
     - https://stackoverflow.com/questions/26995725/how-to-convert-vector-iterator-to-int-in-c#26995815
-    - 
 - map
     - https://en.cppreference.com/w/cpp/container/map
     - https://duckduckgo.com/?t=ffab&q=c%2B%2B+map+example&ia=web
@@ -183,4 +203,10 @@ typ elementu v kontaineri `<=>` typ elementu v cykle pri iterovani `<=>` typ ele
   - https://duckduckgo.com/?t=ffab&q=multiple+definition+of+%60operator%3C%3C(std%3A%3Aostream%26&ia=web
   - https://stackoverflow.com/questions/12802536/c-multiple-definitions-of-operator
   - https://www.cplusplus.com/reference/cassert/assert/
-  - 
+  - https://duckduckgo.com/?t=ffab&q=c%2B%2B+const_cast+mutable&ia=web&iax=qa
+- C\+\+ Preprocessor
+  - https://duckduckgo.com/?t=ffab&q=ifdef+windows+linux&ia=web&iax=qa
+  - https://stackoverflow.com/questions/6649936/c-compiling-on-windows-and-linux-ifdef-switch
+  - https://stackoverflow.com/questions/430424/are-there-any-macros-to-determine-if-my-code-is-being-compiled-to-windows
+  - https://duckduckgo.com/?t=ffab&q=ifdef+and+compound+condition&ia=web
+  - https://stackoverflow.com/questions/2998864/how-to-add-a-or-condition-in-ifdef#2998876
