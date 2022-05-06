@@ -74,11 +74,12 @@ void Directory::moveDuplicatesToSeparateDirectory() {
     pathDelimiter = "\\";
 #endif
 
-    this->pathToDuplicateFilesDirectoryAsText = this->pathToDirectoryAsText + pathDelimiter + "DUPLICATE_FILES" + pathDelimiter;
     bool endsPathToDirectoryWithForwardSlash = this->pathToDirectoryAsText.at(this->pathToDirectoryAsText.size() - 1) == '/';
     if (endsPathToDirectoryWithForwardSlash) {
         this->pathToDirectoryAsText.pop_back();
     }
+
+    this->pathToDuplicateFilesDirectoryAsText = this->pathToDirectoryAsText + pathDelimiter + "DUPLICATE_FILES" + pathDelimiter;
 
     std::filesystem::create_directories(this->pathToDuplicateFilesDirectoryAsText);
 
