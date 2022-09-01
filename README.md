@@ -11,6 +11,18 @@ A report is generated and saved in the separate directory with duplicate files. 
 - compiler supporting C++17 standard or newer
 - packages: `openssl` for generating hash
 
+## Build
+
+To build the release version of the executable from the project, run the provided build script in the root directory of this repository:
+
+    ./build-release.sh
+
+Then launch the executable to find duplicate files by running a command:
+
+    ./cmake-build-release/duplicate_finder "/path/to/directory/with/possible/duplicate/files/"
+
+The duplicate files will be located in the same directory in subdirectory with the name `DUPLICATE_FILES`
+
 ## Design
 
 - HashGenerator
@@ -210,3 +222,7 @@ typ elementu v kontaineri `<=>` typ elementu v cykle pri iterovani `<=>` typ ele
   - https://stackoverflow.com/questions/430424/are-there-any-macros-to-determine-if-my-code-is-being-compiled-to-windows
   - https://duckduckgo.com/?t=ffab&q=ifdef+and+compound+condition&ia=web
   - https://stackoverflow.com/questions/2998864/how-to-add-a-or-condition-in-ifdef#2998876
+- Projects
+  - clean_pacman_cache_dir
+  - update_arch
+
