@@ -9,14 +9,15 @@ std::string File::getAbsolutePath() const {
     return this->fileInDirectory.path().string();
 }
 
-// for sorting so that the original file gets listed first among duplicate files with similar name
+// sorting helper function, to put the original file with shorter name first,
+// and the duplicate files with longer names derived from the original file are listed after the original file
 std::string File::getModifiedAbsolutePath() const {
     std::string modifiedAbsolutePath = this->getAbsolutePath();
 
     size_t position;
     int numberOfCharacters = 1;
     while ((position = modifiedAbsolutePath.find(" ")) != std::string::npos) {
-        modifiedAbsolutePath.replace(position, numberOfCharacters, ".");
+        modifiedAbsolutePath.replace(position, numberOfCharacters, "~");
     }
 
     while ((position = modifiedAbsolutePath.find("(")) != std::string::npos) {

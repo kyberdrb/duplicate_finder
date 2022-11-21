@@ -49,7 +49,7 @@ void Directory::findDuplicates() {
 //        std::cout << "\t";
 //        std::cout << file->getModifiedAbsolutePath();
 //        std::cout << "\n";
-        //std::cout << "---" << '\n';
+//        std::cout << "---" << '\n';
 
         bool isFileMissing = originalFiles.count(file->getHash()) == 0;
         if (isFileMissing) {
@@ -60,7 +60,8 @@ void Directory::findDuplicates() {
         }
 
         duplicateFiles.emplace(file->getHash(), *(file.get()));
-        const_cast<File&>(originalFiles.at(file->getHash()).get()).addDuplicateFile(*(file.get()));
+        File& originalFile = const_cast<File&>(originalFiles.at(file->getHash()).get());
+        originalFile.addDuplicateFile(*(file.get()));
     }
 }
 

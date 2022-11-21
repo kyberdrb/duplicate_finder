@@ -36,7 +36,6 @@ public:
 
 private:
     std::filesystem::directory_entry fileInDirectory;
-    std::string hashAsText;
     std::unique_ptr<Hash> hash;
 
     std::vector<std::reference_wrapper<const File>> duplicateFiles;
